@@ -7,7 +7,7 @@ Ordered task list for project development. This list will evolve over time.
 ## Phase 0 – Project Bootstrap
 
 - [x] Create initial project documentation (`README.md`, `ARCHITECTURE.md`, `TODO.md`)
-- [ ] Initialize git repository
+- [x] Initialize git repository
 - [ ] Set up monorepo or multi-package structure (domain + web to start)
 - [ ] Add `.gitignore`, shared `tsconfig.base.json`, ESLint + Prettier
 

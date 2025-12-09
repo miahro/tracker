@@ -209,5 +209,3 @@ Key design points:
 5. Full AVO and VOI rule support
 6. Backend introduction
 7. Mobile client planning and prototype
-
-

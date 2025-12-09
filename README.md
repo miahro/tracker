@@ -25,26 +25,31 @@ Official MEJÄ rules and organizing instructions are used as the primary domain 
 ## Tech Stack (planned)
 
 **Frontend (web)**
+
 - React + TypeScript
 - Vite (dev/build tool)
 - MapLibre GL JS (map rendering)
 - NLS Finland vector tiles / WMTS as basemap(s)
 
 **Mobile (later phase)**
+
 - React Native + TypeScript
 - React Native MapLibre
 - Offline maps + GPS + device sensors
 
 **Backend (later phase)**
+
 - Node.js + Express (REST API)
 - Prisma ORM
 - PostgreSQL (or SQLite for development)
 
 **Shared domain**
+
 - Pure TypeScript (`domain/`), no React/Node dependencies
 - Geometry, MEJÄ rule modelling, and validation
 
 **Testing**
+
 - Jest or Vitest for unit tests (domain & backend)
 - Cypress for E2E tests (web)
 
@@ -52,7 +57,7 @@ Official MEJÄ rules and organizing instructions are used as the primary domain 
 
 ## Repository Structure (planned)
 
-This is the *target* structure; early versions will grow towards this.
+This is the _target_ structure; early versions will grow towards this.
 
 ```text
 .

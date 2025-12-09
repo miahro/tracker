@@ -123,4 +123,3 @@ Training tracks ignore rule validation but use all geometry features (length, se
 - [ ] Refactor domain models as MEJÄ rule interpretation evolves
 - [ ] Update documentation when architecture changes
 - [ ] Add small guides (map setup, rule logic, domain models)
-

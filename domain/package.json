@@ -1,0 +1,13 @@
+{
+  "name": "@trail-tracker/domain",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest",
+    "lint": "echo \"TODO: lint domain\""
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

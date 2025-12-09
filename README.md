@@ -60,7 +60,11 @@ This is the *target* structure; early versions will grow towards this.
 ├─ web/             # React + MapLibre web UI
 ├─ server/          # Node + Express + Prisma backend
 └─ mobile/          # React Native app (later)
+```
 
+## Architecture
+
+System architecture is described in [architecture](./docs/architecture.md).
 
 ## License
 

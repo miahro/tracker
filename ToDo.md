@@ -8,19 +8,31 @@ Ordered task list for project development. This list will evolve over time.
 
 - [x] Create initial project documentation (`README.md`, `ARCHITECTURE.md`, `TODO.md`)
 - [x] Initialize git repository
-- [ ] Set up monorepo or multi-package structure (domain + web to start)
-- [ ] Add `.gitignore`, shared `tsconfig.base.json`, ESLint + Prettier
+- [x] Set up monorepo or multi-package structure (domain + web to start)
+- [x] Add `.gitignore`, shared `tsconfig.base.json`, ESLint + Prettier
+- [ ] Add GitHub Actions CI:
+  - [ ] Install dependencies for monorepo
+  - [ ] Run `npm run lint`
+  - [ ] Run `npm run build`
+  - [ ] Run `npm test` (once domain tests exist)
+
+---
+
+## Phase 0.5 – Developer Environment Setup
+- [x] Install Node using nvm
+- [x] Install VS Code ESLint + Prettier (new) extensions
+- [x] Configure .vscode/settings.json for ESLint/Prettier
 
 ---
 
 ## Phase 1 – Domain Foundation
 
-- [ ] Create `domain/` package with TypeScript build configuration
-- [ ] Define **TrackType** enum: `AVO | VOI | TRAINING`
-- [ ] Create first domain models:
-  - [ ] `Coordinate`
-  - [ ] `Track` (including `.type: TrackType`)
-  - [ ] `TrackSegment`
+- [x] Create `domain/` package with TypeScript build configuration
+- [x] Define **TrackType** enum: `AVO | VOI | TRAINING`
+- [x] Create first domain models:
+  - [x] `Coordinate`
+  - [x] `Track` (including `.type: TrackType`)
+  - [x] `TrackSegment`
   - [ ] `TrackObject` (Start, Finish, Corner, LayPit, Marker)
 - [ ] Implement basic geometry helpers:
   - [ ] Distance between coordinates

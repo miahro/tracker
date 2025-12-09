@@ -1,0 +1,14 @@
+{
+  "name": "trail-tracker",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "domain",
+    "web"
+  ],
+  "scripts": {
+    "build": "npm run build -w @trail-tracker/domain && npm run build -w @trail-tracker/web",
+    "test": "npm test -w @trail-tracker/domain && npm test -w @trail-tracker/web",
+    "lint": "echo \"TODO: add lint command\""
+  }
+}

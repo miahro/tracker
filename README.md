@@ -62,3 +62,6 @@ This is the *target* structure; early versions will grow towards this.
 └─ mobile/          # React Native app (later)
 
 
+## License
+
+This project is licensed under the [MIT License](./LICENSE).

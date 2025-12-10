@@ -11,9 +11,9 @@ Ordered task list for project development. This list will evolve over time.
 - [x] Set up monorepo or multi-package structure (domain + web to start)
 - [x] Add `.gitignore`, shared `tsconfig.base.json`, ESLint + Prettier
 - [ ] Add GitHub Actions CI:
-  - [ ] Install dependencies for monorepo
-  - [ ] Run `npm run lint`
-  - [ ] Run `npm run build`
+  - [x] Install dependencies for monorepo
+  - [x] Run `npm run lint`
+  - [x] Run `npm run build`
   - [ ] Run `npm test` (once domain tests exist)
 
 ---

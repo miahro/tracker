@@ -16,7 +16,7 @@ Ordered task list for project development. This list will evolve over time.
   - [x] Run `npm run build`
   - [x] Run `npm test` (domain tests)
 
-- [ ] Add coverage reporting (Codecov) once domain tests are in place
+- [x] Add coverage reporting (Codecov) once domain tests are in place
 
 
 ---

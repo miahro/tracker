@@ -1,21 +1,27 @@
-// eslint.config.cjs
+// eslint.config.cjs - ESLint 9 flat config
 
 const tsParser = require('@typescript-eslint/parser')
 const tsPlugin = require('@typescript-eslint/eslint-plugin')
 const prettierPlugin = require('eslint-plugin-prettier')
 
-/** @type {import('eslint').Linter.FlatConfig[]} */
+/** @type {import('eslint').FlatConfig.ConfigArray} */
 module.exports = [
+  // Global ignore patterns
   {
     ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**'],
   },
+
+  // TypeScript (+ TSX for React) files
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parser: tsParser,
+      ecmaVersion: 'latest',
+      sourceType: 'module',
       parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true, // ✅ allow JSX
+        },
       },
     },
     plugins: {
@@ -23,10 +29,10 @@ module.exports = [
       prettier: prettierPlugin,
     },
     rules: {
-      // Start from recommended TS rules
+      // TS recommended rules
       ...tsPlugin.configs.recommended.rules,
 
-      // ✅ Allow intentionally unused vars/args if they start with "_"
+      // Allow intentionally unused vars if they start with "_"
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

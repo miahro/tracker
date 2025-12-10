@@ -15,6 +15,8 @@ Ordered task list for project development. This list will evolve over time.
   - [x] Run `npm run lint`
   - [x] Run `npm run build`
   - [ ] Run `npm test` (once domain tests exist)
+  - [ ] Add coverage reporting (Codecov) once domain tests are in place
+
 
 ---
 

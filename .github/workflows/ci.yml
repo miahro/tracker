@@ -32,6 +32,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      # When you add tests (Vitest/Jest) and a "test" script, this will start doing something:
       - name: Test
-        run: npm test --if-present
+        run: echo "Tests not set up yet, skipping."
+

@@ -5,7 +5,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest",
+    "test": "vitest --coverage",
     "lint": "echo \"TODO: lint domain\""
   },
   "dependencies": {},

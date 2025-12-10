@@ -5,6 +5,7 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     coverage: {
+      enabled: true, // make it explicit
       provider: 'v8',
       reportsDirectory: './coverage',
       reporter: ['text', 'lcov'],

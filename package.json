@@ -7,7 +7,6 @@
     "web"
   ],
   "scripts": {
-    //"build": "npm run build -w @trail-tracker/domain && npm run build -w @trail-tracker/web",
     "build": "npm run build -w @trail-tracker/domain",
     "test": "npm test -w @trail-tracker/domain && npm test -w @trail-tracker/web",
     "lint": "eslint . --ext .ts,.tsx",

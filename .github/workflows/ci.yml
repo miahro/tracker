@@ -33,5 +33,6 @@ jobs:
         run: npm run build
 
       - name: Test
-        run: echo "Tests not set up yet, skipping."
+        run: npm test --if-present
+
 

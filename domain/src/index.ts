@@ -1,16 +1,12 @@
 // domain/src/index.ts
 
-// The basic track types for this project.
-// AVO = open class, VOI = winner class, TRAINING has no strict rules.
 export type TrackType = 'AVO' | 'VOI' | 'TRAINING'
 
-// Simple coordinate in WGS84 (lat/lon in degrees).
 export interface Coordinate {
   lat: number
   lon: number
 }
 
-// One straight-line part of a track between two coordinates.
 export interface TrackSegment {
   id: string
   start: Coordinate
@@ -18,8 +14,6 @@ export interface TrackSegment {
   sequenceIndex: number
 }
 
-// Minimal Track model for now.
-// This will grow as we add objects (corners, lay pits, markers, etc.).
 export interface Track {
   id: string
   name: string
@@ -27,8 +21,30 @@ export interface Track {
   segments: TrackSegment[]
 }
 
-// Placeholder: later we will implement real geometry.
-// For now, this just returns 0 so we can compile and write tests against it.
+// Approximate Earth radius in meters
+const EARTH_RADIUS_METERS = 6371000
+
+// Haversine distance between two WGS84 coordinates in meters
+export function distanceBetweenCoordinatesMeters(a: Coordinate, b: Coordinate): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+
+  const lat1 = toRad(a.lat)
+  const lat2 = toRad(b.lat)
+  const dLat = toRad(b.lat - a.lat)
+  const dLon = toRad(b.lon - a.lon)
+
+  const sinLat = Math.sin(dLat / 2)
+  const sinLon = Math.sin(dLon / 2)
+
+  const h = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLon * sinLon
+
+  const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+
+  return EARTH_RADIUS_METERS * c
+}
+
+// Placeholder: later we’ll use distanceBetweenCoordinatesMeters
+// to sum segment lengths. For now, just keep the stub.
 export function getTrackLengthMeters(_track: Track): number {
   // TODO: implement proper length calculation
   return 0

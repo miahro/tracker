@@ -1,0 +1,22 @@
+coverage:
+  status:
+    project:
+      default:
+        # Don't fail PRs on coverage yet; just report numbers.
+        target: auto
+        threshold: 0.5   # allow small drops without marking as failure
+    patch:
+      default:
+        target: auto
+        threshold: 0.5
+
+ignore:
+  - "**/*.test.ts"
+  - "**/*.d.ts"
+  - "**/dist/**"
+  - "**/node_modules/**"
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false

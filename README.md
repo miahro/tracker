@@ -1,7 +1,7 @@
 # Trail Tracker (working title)
 
 [![CI](https://github.com/miahro/tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/miahro/tracker/actions/workflows/ci.yml)
-
+[![codecov](https://codecov.io/gh/miahro/tracker/branch/main/graph/badge.svg)](https://codecov.io/gh/miahro/tracker)
 
 Planning and navigation tool for **MEJÄ** (Metsästyskoirien jäljestämiskoe) style blood tracks used in Finnish dog sports.
 

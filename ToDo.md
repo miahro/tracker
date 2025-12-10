@@ -40,7 +40,7 @@ Ordered task list for project development. This list will evolve over time.
   - [ ] Distance between coordinates
   - [ ] Total track length calculation
   - [ ] Segment lengths
-- [ ] Set up Jest or Vitest for domain tests
+- [ ] Set up Vitest for domain tests
 - [ ] Add first unit tests for geometry functions
 
 **Notes:**

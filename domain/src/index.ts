@@ -43,9 +43,12 @@ export function distanceBetweenCoordinatesMeters(a: Coordinate, b: Coordinate): 
   return EARTH_RADIUS_METERS * c
 }
 
-// Placeholder: later we’ll use distanceBetweenCoordinatesMeters
-// to sum segment lengths. For now, just keep the stub.
-export function getTrackLengthMeters(_track: Track): number {
-  // TODO: implement proper length calculation
-  return 0
+// Length of a single segment in meters
+export function getSegmentLengthMeters(segment: TrackSegment): number {
+  return distanceBetweenCoordinatesMeters(segment.start, segment.end)
+}
+
+// Total length of a track in meters (sum of segment lengths)
+export function getTrackLengthMeters(track: Track): number {
+  return track.segments.reduce((sum, segment) => sum + getSegmentLengthMeters(segment), 0)
 }

@@ -1,4 +1,5 @@
 import React from 'react'
+import { MapView } from './MapView'
 import type { Track, TrackType } from '@trail-tracker/domain'
 import { getTrackLengthMeters } from '@trail-tracker/domain'
 
@@ -13,14 +14,29 @@ export default function App() {
   const length = getTrackLengthMeters(demoTrack)
 
   return (
-    <div style={{ padding: '1rem', fontFamily: 'system-ui, sans-serif' }}>
-      <h1>Trail Tracker (web demo)</h1>
-      <p>
-        This is a placeholder React app using the shared <code>@trail-tracker/domain</code> package.
-      </p>
-      <p>
-        Demo track <strong>{demoTrack.name}</strong> length: <code>{length.toFixed(2)} m</code>
-      </p>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        fontFamily: 'system-ui, sans-serif',
+      }}
+    >
+      <header
+        style={{
+          padding: '0.75rem 1rem',
+          borderBottom: '1px solid #ddd',
+        }}
+      >
+        <h1 style={{ margin: 0, fontSize: '1.25rem' }}>Trail Tracker</h1>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: '#555' }}>
+          Demo track “{demoTrack.name}” length: {length.toFixed(2)} m
+        </p>
+      </header>
+
+      <main style={{ flex: 1, minHeight: 0 }}>
+        <MapView />
+      </main>
     </div>
   )
 }

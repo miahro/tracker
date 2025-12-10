@@ -9,6 +9,7 @@
     "test": "echo \"No web tests yet\""
   },
   "dependencies": {
+    "maplibre-gl": "^5.14.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

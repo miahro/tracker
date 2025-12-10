@@ -10,12 +10,13 @@ Ordered task list for project development. This list will evolve over time.
 - [x] Initialize git repository
 - [x] Set up monorepo or multi-package structure (domain + web to start)
 - [x] Add `.gitignore`, shared `tsconfig.base.json`, ESLint + Prettier
-- [ ] Add GitHub Actions CI:
+- [x] Add GitHub Actions CI:
   - [x] Install dependencies for monorepo
   - [x] Run `npm run lint`
   - [x] Run `npm run build`
-  - [ ] Run `npm test` (once domain tests exist)
-  - [ ] Add coverage reporting (Codecov) once domain tests are in place
+  - [x] Run `npm test` (domain tests)
+
+- [ ] Add coverage reporting (Codecov) once domain tests are in place
 
 
 ---
@@ -36,12 +37,12 @@ Ordered task list for project development. This list will evolve over time.
   - [x] `Track` (including `.type: TrackType`)
   - [x] `TrackSegment`
   - [ ] `TrackObject` (Start, Finish, Corner, LayPit, Marker)
-- [ ] Implement basic geometry helpers:
-  - [ ] Distance between coordinates
-  - [ ] Total track length calculation
-  - [ ] Segment lengths
-- [ ] Set up Vitest for domain tests
-- [ ] Add first unit tests for geometry functions
+- [x] Implement basic geometry helpers:
+  - [x] Distance between coordinates
+  - [x] Total track length calculation
+  - [x] Segment lengths
+- [x] Set up Vitest for domain tests
+- [x] Add first unit tests for geometry functions
 
 **Notes:**
 Training tracks ignore rule validation but use all geometry features (length, segments, markers).

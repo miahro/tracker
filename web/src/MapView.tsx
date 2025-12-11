@@ -1,46 +1,62 @@
 import React, { useEffect, useRef } from 'react'
-import maplibregl from 'maplibre-gl'
+import maplibregl, { type StyleSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { getBaseMapConfig, type BaseMapId } from './basemaps'
+
+//const SELECTED_BASEMAP: BaseMapId = 'mapant' // change to 'nls-vector' to test NLS
+const SELECTED_BASEMAP: BaseMapId = 'nls-vector'
 
 export function MapView() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
 
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) {
+    if (!mapContainerRef.current || mapRef.current) return
+
+    const nlsApiKey = import.meta.env.VITE_NLS_API_KEY
+    const baseMap = getBaseMapConfig(SELECTED_BASEMAP, nlsApiKey)
+
+    let style: string | StyleSpecification
+
+    if (baseMap.type === 'vector-style-url' && baseMap.styleUrl) {
+      // For NLS: style is a URL string
+      style = baseMap.styleUrl
+    } else if (baseMap.type === 'raster-xyz' && baseMap.tileUrlTemplate) {
+      // For MapAnt: build a full MapLibre style object
+      style = {
+        version: 8,
+        sources: {
+          base: {
+            type: 'raster',
+            tiles: [baseMap.tileUrlTemplate],
+            tileSize: 256,
+            minzoom: 0,
+            maxzoom: 18,
+            attribution:
+              'MapAnt Finland – https://mapant.fi – Contains data © National Land Survey of Finland (NLS), CC BY 4.0',
+          },
+        },
+        layers: [
+          {
+            id: 'base',
+            type: 'raster',
+            source: 'base',
+          },
+        ],
+      }
+    } else {
+      console.error('Invalid basemap configuration', baseMap)
       return
     }
-
-    const apiKey = import.meta.env.VITE_NLS_API_KEY
-
-    if (!apiKey) {
-      // You can later replace this with a nicer UI message
-      // but for now a console warning is enough.
-
-      console.warn('VITE_NLS_API_KEY not set – NLS basemap will not load')
-      return
-    }
-
-    //const styleUrl = `https://avoin-karttakuva.maanmittauslaitos.fi/vectortiles/stylejson/v20/taustakartta.json?TileMatrixSet=WGS84_Pseudo-Mercator&api-key=${apiKey}`
-    const styleUrl = `https://avoin-karttakuva.maanmittauslaitos.fi/vectortiles/stylejson/v20/backgroundmap.json?TileMatrixSet=WGS84_Pseudo-Mercator&api-key=${apiKey}`
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: styleUrl,
-      center: [25.0, 60.0], // [lon, lat] – roughly southern Finland
-      zoom: 7,
+      style,
+      center: [25.0, 60.5],
+      zoom: 12,
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
-
-    // Optional: explicit attribution control, see below
-    map.addControl(
-      new maplibregl.AttributionControl({
-        compact: true,
-        customAttribution: '© National Land Survey of Finland, NLS open data CC BY 4.0',
-      }),
-      'bottom-right'
-    )
 
     mapRef.current = map
 
@@ -50,13 +66,5 @@ export function MapView() {
     }
   }, [])
 
-  return (
-    <div
-      ref={mapContainerRef}
-      style={{
-        width: '100%',
-        height: '100%',
-      }}
-    />
-  )
+  return <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 }

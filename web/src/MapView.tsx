@@ -1,14 +1,28 @@
+// web/src/MapView.tsx
 import React, { useEffect, useRef } from 'react'
 import maplibregl, { type StyleSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { getBaseMapConfig, type BaseMapId } from './basemaps'
 
-//const SELECTED_BASEMAP: BaseMapId = 'mapant' // change to 'nls-vector' to test NLS
-const SELECTED_BASEMAP: BaseMapId = 'nls-vector'
+// Change this to 'mapant' or 'nls-vector' to switch basemap
+const SELECTED_BASEMAP: BaseMapId = 'mapant'
+//const SELECTED_BASEMAP: BaseMapId = 'nls-vector'
+
+interface MapAntFeatureName {
+  id: string
+  lng: number
+  lat: number
+  text: string
+  type: string
+  rotation: string
+  size: string
+  code: string
+}
 
 export function MapView() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
+  const labelMarkersRef = useRef<maplibregl.Marker[]>([])
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
@@ -57,10 +71,87 @@ export function MapView() {
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
-
     mapRef.current = map
 
+    // --- MapAnt feature names (only when using MapAnt basemap) ---
+
+    async function updateFeatureNames() {
+      if (baseMap.id !== 'mapant') {
+        return
+      }
+
+      const bounds = map.getBounds()
+      const payload = {
+        south: bounds.getSouth(),
+        north: bounds.getNorth(),
+        west: bounds.getWest(),
+        east: bounds.getEast(),
+      }
+
+      try {
+        const response = await fetch('https://www.mapant.fi/ajax/getFeatureNames.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+
+        if (!response.ok) {
+          console.warn('MapAnt getFeatureNames returned non-OK status', response.status)
+          return
+        }
+
+        const data = (await response.json()) as {
+          featureNames?: MapAntFeatureName[]
+        }
+        const featureNames = data.featureNames ?? []
+
+        // Remove existing markers
+        for (const marker of labelMarkersRef.current) {
+          marker.remove()
+        }
+        labelMarkersRef.current = []
+
+        // Add new markers
+        for (const f of featureNames) {
+          const el = document.createElement('div')
+          el.textContent = f.text
+          el.style.position = 'relative'
+          el.style.whiteSpace = 'nowrap'
+          el.style.fontSize = '11px'
+          el.style.fontFamily = 'system-ui, sans-serif'
+          el.style.color = '#1a1a1a'
+          el.style.textShadow = '0 0 3px rgba(255,255,255,0.9), 0 0 2px rgba(255,255,255,0.9)'
+
+          const marker = new maplibregl.Marker({ element: el }).setLngLat([f.lng, f.lat]).addTo(map)
+
+          labelMarkersRef.current.push(marker)
+        }
+      } catch (error) {
+        console.error('Failed to fetch MapAnt feature names', error)
+      }
+    }
+
+    function handleMoveEnd() {
+      if (baseMap.id === 'mapant') {
+        void updateFeatureNames()
+      }
+    }
+
+    map.on('load', () => {
+      if (baseMap.id === 'mapant') {
+        void updateFeatureNames()
+      }
+    })
+    map.on('moveend', handleMoveEnd)
+
     return () => {
+      map.off('moveend', handleMoveEnd)
+      for (const marker of labelMarkersRef.current) {
+        marker.remove()
+      }
+      labelMarkersRef.current = []
       map.remove()
       mapRef.current = null
     }

@@ -43,13 +43,12 @@ jobs:
           fail_ci_if_error: true
           verbose: true
 
-
       - name: Cypress E2E
         uses: cypress-io/github-action@v6
         with:
-          # Run from repo root so the action finds package-lock.json
-          config-file: web/cypress.config.ts
-          start: npm run dev -w @trail-tracker/web
+          working-directory: web
+          install: false
+          start: npm run dev
           wait-on: http://localhost:5173
           wait-on-timeout: 120
           browser: chromium

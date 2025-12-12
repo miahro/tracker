@@ -44,32 +44,12 @@ jobs:
           verbose: true
 
 
-  e2e:
-    runs-on: ubuntu-latest
-    needs: build-and-lint
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      # If your web build is fast, keep it. If not, you can remove this.
-      - name: Build (optional)
-        run: npm run build -w @trail-tracker/web
-
       - name: Cypress E2E
         uses: cypress-io/github-action@v6
         with:
-          working-directory: web
-          # Start dev server for Vite app
-          start: npm run dev
+          # Run from repo root so the action finds package-lock.json
+          config-file: web/cypress.config.ts
+          start: npm run dev -w @trail-tracker/web
           wait-on: http://localhost:5173
           wait-on-timeout: 120
           browser: chromium

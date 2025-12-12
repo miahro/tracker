@@ -25,6 +25,26 @@ Official MEJÄ rules and organizing instructions are used as the primary domain 
 
 ---
 
+## Data Sources
+
+This project uses openly licensed geospatial datasets:
+
+### MapAnt Finland
+- **MapAnt Finland** – automatically generated orienteering map of all Finland
+- Contains data © *National Land Survey of Finland (NLS)*
+- Open data license: **CC BY 4.0**
+- Website: https://mapant.fi
+
+### National Land Survey of Finland (NLS)
+- **Topographic database vector tiles (Taustakartta / Backgroundmap)**
+- Open data license: **CC BY 4.0**
+- More information: https://www.maanmittauslaitos.fi/en/maps-and-spatial-data/opendata
+
+Proper attribution is shown inside the application UI on all map layers.
+
+---
+
+
 ## Tech Stack (planned)
 
 **Frontend (web)**
@@ -77,3 +97,20 @@ System architecture is described in [architecture](./docs/architecture.md).
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).
+
+### License Compatibility
+
+This project is licensed under the **MIT License**.
+
+All external map layers used in the application are under **Creative Commons Attribution 4.0 International (CC BY 4.0)** licenses:
+
+- **MapAnt Finland** imagery
+- **National Land Survey of Finland (NLS)** open datasets and vector tiles
+
+CC BY 4.0 is compatible with MIT-licensed software **as long as attribution requirements are fulfilled**.
+To meet these obligations:
+
+- Attribution is shown **inside the application UI** on all maps.
+- Attribution is also included in the project’s **Data Sources** section.
+
+No CC BY 4.0 licensed data is redistributed or modified inside this repository; it is loaded dynamically from the official providers, which keeps licensing boundaries clear.

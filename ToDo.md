@@ -51,11 +51,12 @@ Training tracks ignore rule validation but use all geometry features (length, se
 
 ## Phase 2 – Web App Scaffold
 
-- [ ] Scaffold `web/` app with Vite + React + TypeScript
-- [ ] Enable imports from `domain/` using workspace / path alias
-- [ ] Add minimal UI structure (header + main)
-- [ ] Integrate MapLibre GL JS
-- [ ] Load NLS Finland basemap with correct attribution
+- [x] Scaffold `web/` app with Vite + React + TypeScript
+- [x] Enable imports from `domain/` using workspace / path alias
+- [x] Add minimal UI structure (header + main)
+- [x] Integrate MapLibre GL JS
+- [x] Load NLS Finland basemap with correct attribution
+- [x] Load MapAnt basemap as alternative
 
 ---
 
@@ -129,6 +130,7 @@ Training tracks ignore rule validation but use all geometry features (length, se
 - [ ] Load a test track from API or local JSON
 - [ ] Show GPS position on map
 - [ ] Begin offline-map planning
+- [ ] Implement fetching feature names from MapAnt
 
 ---
 

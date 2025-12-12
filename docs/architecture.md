@@ -1,4 +1,4 @@
-# Architecture & Technical Overview
+# Architecture & Technical Overview (Updated)
 
 This document describes the planned architecture for Trail Tracker: a full-stack TypeScript application for designing and navigating MEJÄ-style blood tracks.
 
@@ -34,23 +34,24 @@ flowchart LR
 ```text
 .
 ├─ domain/                      # Pure TS domain logic (no React or Node)
-│  ├─ models/                   # Track, Segment, Corner, LayPit, etc.
+│  ├─ models/                   # Track, Segment, Objects, etc.
 │  ├─ rules/                    # Rule models and validation logic
 │  ├─ geometry/                 # Distance, angles, intersection checks
-│  └─ __tests__/                # Unit tests (Jest or Vitest)
+│  └─ __tests__/                # Unit tests (Vitest)
 │
 ├─ web/                         # React + MapLibre web application
 │  ├─ src/
+│  │  ├─ adapters/              # GeoJSON/MapLibre ↔ domain conversions
 │  │  ├─ components/
 │  │  ├─ features/
-│  │  │  ├─ track-design/
+│  │  │  ├─ track-editor/
 │  │  │  └─ rule-visualization/
 │  │  ├─ hooks/
 │  │  ├─ pages/
 │  │  └─ main.tsx
-│  └─ tests/                    # Cypress E2E tests
+│  └─ tests/                    # Cypress E2E tests (later)
 │
-├─ server/                      # Node.js + Express backend
+├─ server/                      # Node.js + Express backend (later)
 │  ├─ src/
 │  │  ├─ api/                   # REST controllers
 │  │  ├─ services/              # Application logic
@@ -73,9 +74,14 @@ The **domain** package is the heart of the system. It must be:
 - Heavily unit-tested
 - Stable and backwards-compatible once the mobile app is built
 
-### Core Models (first iteration)
+### Coordinate Convention (Important)
 
-These will evolve, but initial core types may look like:
+- Domain `Coordinate` uses **WGS84 (longitude, latitude)**.
+- Projection / rendering conversions (e.g., WebMercator) happen only in `web/` and `mobile/` map adapters.
+
+This avoids subtle geometry and bearing errors.
+
+### Core Models (first iteration)
 
 - `Track`
   - `id`, `name`, `type` (AVO | VOI | TRAINING)
@@ -86,20 +92,41 @@ These will evolve, but initial core types may look like:
   - `id`, `start: Coordinate`, `end: Coordinate`
   - `sequenceIndex: number`
 - `TrackObject` (discriminated union)
-  - `type: "LAY_PIT" | "CORNER" | "MARKER" | "FINISH" | "START" | "MAKUUPAIKKA" | "KATKOS"`
-  - geometry & metadata
+  - `type: "START" | "FINISH" | "CORNER" | "LAY_PIT" | "MARKER" | "BREAK"`
+  - Geometry & metadata by type
 - `RuleSet`
   - Parameterized constraints for AVO / VOI (length ranges, min distances, etc.)
 - `RuleViolation`
   - `id`, `ruleId`, `severity`, `message`, `location`, `details`
 
-Training tracks will **not** use rule validation, but they will use all geometry and object features (lengths, segment lengths, markers, etc.).
+Training tracks do **not** use MEJÄ rule validation, but they use all geometry and object features.
 
-The rule engine will:
+---
 
-1. Take a `Track` and a `RuleSet` (e.g., AVO or VOI as defined in MEJÄ rules).
-2. Run geometry + structural checks.
-3. Return a list of `RuleViolation`s + summary status.
+## Adapter Boundary (Make This Explicit)
+
+To keep the domain pure and reusable:
+
+- `domain/` must not depend on GeoJSON or MapLibre types.
+- `web/` and `mobile/` convert **GeoJSON/MapLibre** ↔ **domain** via small adapter modules.
+
+**Examples:**
+
+- `web/src/adapters/geojson.ts`
+- `web/src/adapters/coordinates.ts`
+
+---
+
+## Web Editor State Model
+
+To prevent UX complexity, define an explicit editor state machine:
+
+- `idle` – nothing drawn yet
+- `drawing` – appending points
+- `finished` – track defined, ready for validation/object placement
+- `editing` – moving/inserting/removing points
+
+State determines which interactions are allowed.
 
 ---
 
@@ -116,6 +143,7 @@ flowchart TB
     subgraph Web[web/]
         WebUI[React Components]
         WebMap[MapLibre Integration]
+        Adapters[Adapters]
     end
 
     subgraph Server[server/]
@@ -126,40 +154,19 @@ flowchart TB
     subgraph Mobile[mobile/]
         MobileUI[React Native Screens]
         MobileMap[MapLibre RN]
+        MAdapters[Adapters]
     end
 
-    Models --> WebUI
-    Geometry --> WebUI
-    Rules --> WebUI
+    Models --> Adapters
+    Geometry --> Adapters
+    Rules --> Adapters
 
-    Models --> API
-    Geometry --> API
-    Rules --> API
+    Adapters --> WebUI
+    Adapters --> API
+    Adapters --> MobileUI
 
-    Models --> MobileUI
-    Geometry --> MobileUI
-    Rules --> MobileUI
+    API --> DBLayer
 ```
-
----
-
-## Web Application Architecture
-
-### Technologies
-
-- React + TypeScript
-- Vite bundler
-- MapLibre GL JS for map rendering
-- React Query later for backend interaction
-
-### Initial Features
-
-- Display NLS basemap via MapLibre
-- Start new track (choose AVO, VOI, or Training)
-- Draw geometry: points and lines
-- Add domain-specific objects: corners, lay pits, markers, finish
-- Run local validation using `domain/`
-- Visualize rule violations on map
 
 ---
 
@@ -169,7 +176,7 @@ Responsibilities:
 
 - User management
 - CRUD for tracks
-- Rule configuration
+- Rule configuration (optional; defaults can live in domain)
 - Track versioning
 - Multi-device sync
 
@@ -177,7 +184,7 @@ Tech stack:
 
 - Node.js + Express
 - Prisma ORM
-- PostgreSQL or SQLite for development
+- PostgreSQL (or SQLite in development)
 
 ---
 
@@ -189,14 +196,24 @@ Key design points:
 - Local caching of tracks and tiles
 - GPS and orientation-based navigation
 - Minimal UI focused on executing pre-designed tracks
+- Reuse of `domain/` for geometry + validation (where relevant)
 
 ---
 
 ## Testing Strategy
 
-- **Domain:** Unit tests for geometry and rule validation
-- **Web:** Cypress E2E + component tests
+- **Domain:** Unit tests for geometry and rule validation (Vitest)
+- **Web:** Cypress E2E + component tests (later)
 - **Server:** Integration tests for endpoints
+
+---
+
+## Domain Stability Contract
+
+Once mobile development begins:
+
+- Treat domain public APIs as stable.
+- Breaking changes require versioning and/or migrations (especially for persisted tracks).
 
 ---
 

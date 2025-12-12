@@ -27,90 +27,159 @@ Official MEJÄ rules and organizing instructions are used as the primary domain 
 
 ## Data Sources
 
-This project uses openly licensed geospatial datasets:
-
 ### MapAnt Finland
-- **MapAnt Finland** – automatically generated orienteering map of all Finland
-- Contains data © *National Land Survey of Finland (NLS)*
-- Open data license: **CC BY 4.0**
-- Website: https://mapant.fi
+- Automatically generated orienteering map of Finland
+- Contains data © National Land Survey of Finland (NLS)
+- License: **CC BY 4.0**
+- https://mapant.fi
 
 ### National Land Survey of Finland (NLS)
-- **Topographic database vector tiles (Taustakartta / Backgroundmap)**
-- Open data license: **CC BY 4.0**
-- More information: https://www.maanmittauslaitos.fi/en/maps-and-spatial-data/opendata
+- Topographic database vector tiles (Taustakartta / Backgroundmap)
+- License: **CC BY 4.0**
+- https://www.maanmittauslaitos.fi/en/maps-and-spatial-data/opendata
 
 Proper attribution is shown inside the application UI on all map layers.
 
 ---
 
-
 ## Tech Stack (planned)
 
 **Frontend (web)**
-
 - React + TypeScript
-- Vite (dev/build tool)
-- MapLibre GL JS (map rendering)
-- NLS Finland vector tiles / WMTS as basemap(s)
+- Vite
+- MapLibre GL JS
 
 **Mobile (later phase)**
-
 - React Native + TypeScript
 - React Native MapLibre
-- Offline maps + GPS + device sensors
+- Offline maps + GPS
 
 **Backend (later phase)**
-
-- Node.js + Express (REST API)
+- Node.js + Express
 - Prisma ORM
-- PostgreSQL (or SQLite for development)
+- PostgreSQL / SQLite
 
 **Shared domain**
-
-- Pure TypeScript (`domain/`), no React/Node dependencies
-- Geometry, MEJÄ rule modelling, and validation
-
-**Testing**
-
-- Jest or Vitest for unit tests (domain & backend)
-- Cypress for E2E tests (web)
+- Pure TypeScript (`domain/`)
+- Geometry, MEJÄ rules, validation
 
 ---
 
-## Repository Structure (planned)
-
-This is the _target_ structure; early versions will grow towards this.
+## Repository Structure
 
 ```text
 .
-├─ domain/          # Pure TS: track models, rules, geometry, validation
-├─ web/             # React + MapLibre web UI
-├─ server/          # Node + Express + Prisma backend
-└─ mobile/          # React Native app (later)
+├─ domain/
+├─ web/
+├─ server/
+└─ mobile/
 ```
+
+---
+
+## Development
+
+### Linting
+
+This repository uses **ESLint** for linting, with formatting handled by **Prettier**.
+
+Run linting from the repository root:
+
+```bash
+npm run lint
+```
+
+Auto-fix where possible:
+
+```bash
+npm run lint -- --fix
+```
+
+---
+
+### Testing
+
+Testing is split into **unit tests** (domain) and **end-to-end (E2E) tests** (web).
+
+#### Unit Tests
+
+Unit tests are implemented using **Vitest** and currently focus on the `domain/` package.
+
+Run from repo root:
+
+```bash
+npm test
+```
+
+
+---
+
+#### End-to-End (E2E) Tests – Web
+
+The web application uses **Cypress**.
+
+Run from the root:
+
+```bash
+npm run cy:open -w @trail-tracker/web   # Cypress UI (Chromium)
+npm run cy:open:chrome -w @trail-tracker/web   # Cypress UI (Chrome)
+npm run cy:run -w @trail-tracker/web         # Headless Cypress run
+```
+
+Run full automated E2E flow (recommended):
+
+```bash
+npm run e2e -w @trail-tracker/web
+```
+
+This will:
+1. Start the Vite dev server
+2. Wait for http://localhost:5173
+3. Execute Cypress tests headlessly
+4. Shut everything down automatically
+
+---
+
+### Local Development Workflow
+
+Typical day-to-day workflow:
+
+```bash
+# install dependencies
+npm install
+
+# start web app
+npm run e2e -w @trail-tracker/web
+```
+
+Before committing:
+
+```bash
+npm run lint
+npm test
+```
+
+Before opening a PR (recommended):
+
+```bash
+npm run e2e -w @trail-tracker/web
+```
+
+---
 
 ## Architecture
 
 System architecture is described in [architecture](./docs/architecture.md).
 
+---
+
 ## License
-
-This project is licensed under the [MIT License](./LICENSE).
-
-### License Compatibility
 
 This project is licensed under the **MIT License**.
 
-All external map layers used in the application are under **Creative Commons Attribution 4.0 International (CC BY 4.0)** licenses:
+External map data is licensed under **CC BY 4.0**:
 
-- **MapAnt Finland** imagery
-- **National Land Survey of Finland (NLS)** open datasets and vector tiles
+- MapAnt Finland
+- National Land Survey of Finland (NLS)
 
-CC BY 4.0 is compatible with MIT-licensed software **as long as attribution requirements are fulfilled**.
-To meet these obligations:
-
-- Attribution is shown **inside the application UI** on all maps.
-- Attribution is also included in the project’s **Data Sources** section.
-
-No CC BY 4.0 licensed data is redistributed or modified inside this repository; it is loaded dynamically from the official providers, which keeps licensing boundaries clear.
+Attribution is shown inside the application UI and documented above.

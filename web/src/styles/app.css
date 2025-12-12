@@ -1,0 +1,54 @@
+/* web/src/styles/app.css */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: system-ui, sans-serif;
+}
+
+.header {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.subtle {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+}
+
+.toggleRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pillButton {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  background-color: #f8f8f8;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.pillButtonActive {
+  border-color: #007acc;
+  background-color: #e6f3ff;
+}
+
+.mapContainer {
+  width: 100%;
+  height: 100%;
+}

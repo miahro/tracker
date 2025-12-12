@@ -43,6 +43,7 @@ jobs:
           fail_ci_if_error: true
           verbose: true
 
+
       - name: Cypress E2E
         uses: cypress-io/github-action@v6
         with:

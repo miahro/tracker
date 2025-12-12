@@ -4,10 +4,6 @@ import maplibregl, { type StyleSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { getBaseMapConfig, type BaseMapId } from './basemaps'
 
-// Change this to 'mapant' or 'nls-vector' to switch basemap
-const SELECTED_BASEMAP: BaseMapId = 'mapant'
-//const SELECTED_BASEMAP: BaseMapId = 'nls-vector'
-
 interface MapAntFeatureName {
   id: string
   lng: number
@@ -19,16 +15,20 @@ interface MapAntFeatureName {
   code: string
 }
 
-export function MapView() {
+interface MapViewProps {
+  baseMapId: BaseMapId
+}
+
+export function MapView({ baseMapId }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const labelMarkersRef = useRef<maplibregl.Marker[]>([])
 
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return
+    if (!mapContainerRef.current) return
 
     const nlsApiKey = import.meta.env.VITE_NLS_API_KEY
-    const baseMap = getBaseMapConfig(SELECTED_BASEMAP, nlsApiKey)
+    const baseMap = getBaseMapConfig(baseMapId, nlsApiKey)
 
     let style: string | StyleSpecification
 
@@ -66,8 +66,8 @@ export function MapView() {
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style,
-      center: [25.0, 60.5],
-      zoom: 12,
+      center: [23.796833, 60.447159],
+      zoom: 15,
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
@@ -146,6 +146,7 @@ export function MapView() {
     })
     map.on('moveend', handleMoveEnd)
 
+    // Cleanup when baseMapId changes or component unmounts
     return () => {
       map.off('moveend', handleMoveEnd)
       for (const marker of labelMarkersRef.current) {
@@ -155,7 +156,7 @@ export function MapView() {
       map.remove()
       mapRef.current = null
     }
-  }, [])
+  }, [baseMapId])
 
   return <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 }

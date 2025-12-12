@@ -12,9 +12,10 @@ export function BaseMapToggle({ value, onChange }: Props) {
     ['pillButton', active ? 'pillButtonActive' : ''].filter(Boolean).join(' ')
 
   return (
-    <div className="toggleRow">
+    <div className="toggleRow" data-testid="basemap-toggle">
       <button
         type="button"
+        data-testid="basemap-nls"
         onClick={() => onChange('nls-vector')}
         className={buttonClass(value === 'nls-vector')}
       >
@@ -23,6 +24,7 @@ export function BaseMapToggle({ value, onChange }: Props) {
 
       <button
         type="button"
+        data-testid="basemap-mapant"
         onClick={() => onChange('mapant')}
         className={buttonClass(value === 'mapant')}
       >

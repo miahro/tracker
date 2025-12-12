@@ -68,6 +68,7 @@ Training tracks ignore rule validation but use all geometry features (length, se
 - [ ] Convert drawn data into `domain` models
 - [ ] Add undo / reset track drawing
 - [ ] Add UI for selecting **track type** (AVO / VOI / Training) before drawing
+- [ ] Add compass bearing for all segments; declination corrected based on location
 
 ---
 
@@ -86,6 +87,7 @@ Training tracks ignore rule validation but use all geometry features (length, se
   - [ ] Total length
   - [ ] Segment lengths
   - [ ] Object list
+
 
 ---
 

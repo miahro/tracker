@@ -120,7 +120,7 @@
 - [x] Manual distance ruler tool (click two map points → shows distance)
   - Primary use: checking distance from roads, buildings
 - [x] Visualize rule violations on map (color overlays, segment highlighting)
-- [ ] Local persistence (IndexedDB)
+- [x] Local persistence (IndexedDB)
 - [ ] Advanced geometry editing:
   - [ ] Move point
   - [ ] Delete point

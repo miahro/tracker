@@ -57,6 +57,7 @@ describe('getTrackLengthMeters', () => {
       name: 'Empty',
       type: 'TRAINING',
       segments: [],
+      objects: [],
     }
 
     expect(getTrackLengthMeters(emptyTrack)).toBe(0)
@@ -86,6 +87,7 @@ describe('getTrackLengthMeters', () => {
       name: 'Two segments',
       type: 'TRAINING',
       segments: [s1, s2],
+      objects: [],
     }
 
     const len1 = getSegmentLengthMeters(s1)

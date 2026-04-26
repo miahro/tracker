@@ -100,3 +100,32 @@
   padding: 0.1rem 0.6rem;
   white-space: nowrap;
 }
+
+.validationPanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-bottom: 1px solid #ddd;
+  font-size: 0.85rem;
+}
+
+.validationPanelOk {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.validationPanelErrors {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.validationOk {
+  color: #15803d;
+  font-weight: 500;
+}
+
+.validationError {
+  color: #b91c1c;
+  font-weight: 500;
+}

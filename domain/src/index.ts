@@ -159,3 +159,80 @@ export function getSegmentBearingDegrees(segment: TrackSegment): number {
   // Normalise to 0–360
   return (bearing + 360) % 360
 }
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+/**
+ * A single rule violation found when validating a track.
+ *
+ * severity:
+ *   'error'   — track is invalid and cannot be used in a competition
+ *   'warning' — advisable to fix, but not a hard disqualifier
+ *
+ * segmentIndex is present when the violation is specific to one segment
+ * (0-based, matching TrackSegment.sequenceIndex).
+ */
+export interface RuleViolation {
+  ruleId: string
+  severity: 'error' | 'warning'
+  message: string
+  segmentIndex?: number
+}
+
+// Track length bounds per class (meters)
+const TRACK_LENGTH: Record<string, { min: number; max: number }> = {
+  AVO: { min: 900, max: 1000 },
+  VOI: { min: 1200, max: 1400 },
+}
+
+const MIN_SEGMENT_LENGTH_M = 150
+
+/**
+ * Validate a finished Track against the MEJÄ rules that can be checked
+ * from geometry alone.
+ *
+ * TRAINING tracks are never validated — returns an empty array.
+ *
+ * Rules checked:
+ *   track-length       — total length within class bounds (AVO/VOI)
+ *   min-segment-length — every segment ≥ 150 m (AVO/VOI)
+ */
+export function validateTrack(track: Track): RuleViolation[] {
+  if (track.type === 'TRAINING') return []
+
+  const violations: RuleViolation[] = []
+  const totalLength = getTrackLengthMeters(track)
+  const bounds = TRACK_LENGTH[track.type]
+
+  // --- Total track length ---
+  if (totalLength < bounds.min) {
+    violations.push({
+      ruleId: 'track-length',
+      severity: 'error',
+      message: `Track is too short: ${Math.round(totalLength)} m (minimum ${bounds.min} m for ${track.type})`,
+    })
+  } else if (totalLength > bounds.max) {
+    violations.push({
+      ruleId: 'track-length',
+      severity: 'error',
+      message: `Track is too long: ${Math.round(totalLength)} m (maximum ${bounds.max} m for ${track.type})`,
+    })
+  }
+
+  // --- Minimum segment length ---
+  for (const segment of track.segments) {
+    const length = getSegmentLengthMeters(segment)
+    if (length < MIN_SEGMENT_LENGTH_M) {
+      violations.push({
+        ruleId: 'min-segment-length',
+        severity: 'error',
+        message: `Segment ${segment.sequenceIndex + 1} is too short: ${Math.round(length)} m (minimum ${MIN_SEGMENT_LENGTH_M} m)`,
+        segmentIndex: segment.sequenceIndex,
+      })
+    }
+  }
+
+  return violations
+}

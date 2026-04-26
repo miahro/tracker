@@ -5,12 +5,25 @@ import type { BaseMapId } from './basemaps'
 import { BaseMapToggle } from './components/BaseMapToggle'
 import { useDraftTrack } from './features/track-editor/useDraftTrack'
 import { segmentsToGeoJson } from './adapters/geojson'
+import { validateTrack, type RuleViolation } from '@trail-tracker/domain'
 
 export default function App() {
   const [baseMapId, setBaseMapId] = useState<BaseMapId>('nls-vector')
   const { state, derived, startDrawing, addPoint, undo, finish, reset } = useDraftTrack()
+  const [violations, setViolations] = useState<RuleViolation[] | null>(null)
 
   const trackPositions = segmentsToGeoJson(derived.segments)
+
+  function handleValidate() {
+    if (derived.finishedTrack) {
+      setViolations(validateTrack(derived.finishedTrack))
+    }
+  }
+
+  function handleReset() {
+    setViolations(null)
+    reset()
+  }
 
   return (
     <div className="app">
@@ -81,8 +94,17 @@ export default function App() {
             </button>
           )}
           {state.mode !== 'idle' && (
-            <button className="pillButton" data-testid="btn-reset" onClick={reset}>
+            <button className="pillButton" data-testid="btn-reset" onClick={handleReset}>
               Reset
+            </button>
+          )}
+          {state.mode === 'finished' && (
+            <button
+              className="pillButton pillButtonActive"
+              data-testid="btn-validate"
+              onClick={handleValidate}
+            >
+              Validate
             </button>
           )}
         </div>
@@ -114,6 +136,26 @@ export default function App() {
               {info.isTooShort && ' ⚠'}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Validation results */}
+      {violations !== null && (
+        <div
+          className={`validationPanel ${violations.length === 0 ? 'validationPanelOk' : 'validationPanelErrors'}`}
+          data-testid="validation-panel"
+        >
+          {violations.length === 0 ? (
+            <span className="validationOk" data-testid="validation-ok">
+              ✓ Track is valid
+            </span>
+          ) : (
+            violations.map((v, i) => (
+              <span key={i} className="validationError" data-testid={`violation-${i}`}>
+                ✕ {v.message}
+              </span>
+            ))
+          )}
         </div>
       )}
 

@@ -87,12 +87,12 @@
 
 ### 4a — Validatable from geometry (web + mobile)
 
-- [ ] `RuleViolation` type: `{ ruleId, severity, message, segmentIndex? }`
-- [ ] AVO length: 900–1000 m
-- [ ] VOI length: 1200–1400 m
-- [ ] All segments ≥ 150 m (AVO and VOI)
-- [ ] "Validate Track" button — shows violations in summary bar
-- [ ] Training tracks: skip all validation, show geometry only
+- [x] `RuleViolation` type: `{ ruleId, severity, message, segmentIndex? }`
+- [x] AVO length: 900–1000 m
+- [x] VOI length: 1200–1400 m
+- [x] All segments ≥ 150 m (AVO and VOI)
+- [x] "Validate Track" button — shows violations in summary bar
+- [x] Training tracks: skip all validation, show geometry only
 
 ### 4b — Computed display (web planner + mobile display)
 

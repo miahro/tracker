@@ -24,6 +24,12 @@ export default function App() {
     return 'corner'
   })
 
+  const violatedSegmentIndices: number[] = violations
+    ? violations
+        .filter((v) => v.ruleId === 'min-segment-length' && v.segmentIndex !== undefined)
+        .map((v) => v.segmentIndex!)
+    : []
+
   function handleValidate() {
     if (derived.finishedTrack) {
       setViolations(validateTrack(derived.finishedTrack))
@@ -211,6 +217,7 @@ export default function App() {
           pointRoles={pointRoles}
           layPitZones={derived.layPitZones}
           breakEligibility={derived.breakEligibility}
+          violatedSegmentIndices={violatedSegmentIndices}
           rulerPointA={ruler.pointA}
           rulerPointB={ruler.pointB}
           onMapClick={

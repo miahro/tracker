@@ -26,6 +26,7 @@ interface MapViewProps {
   pointRoles: PointRole[]
   layPitZones: LayPitZone[]
   breakEligibility: BreakEligibility[]
+  violatedSegmentIndices: number[]
   rulerPointA: GeoJsonPosition | null
   rulerPointB: GeoJsonPosition | null
   onMapClick?: (position: GeoJsonPosition) => void
@@ -37,7 +38,7 @@ const DEFAULT_ZOOM = 15
 const SOURCE_ID = 'draft-track'
 const LAYER_LINE_ID = 'draft-track-line'
 const LAYER_POINTS_ID = 'draft-track-points'
-const LINE_COLOR = '#e63946'
+const LINE_COLOR = '#2563eb' // blue — clear contrast against red violation highlight
 
 // VOI overlay layer IDs
 const SOURCE_LAY_PIT = 'lay-pit-zones'
@@ -117,21 +118,29 @@ function buildBreakGeoJson(
   }
 }
 
-function buildGeoJson(positions: GeoJsonPosition[], roles: PointRole[]): GeoJSON.FeatureCollection {
+function buildGeoJson(
+  positions: GeoJsonPosition[],
+  roles: PointRole[],
+  violatedSegmentIndices: number[]
+): GeoJSON.FeatureCollection {
+  const violated = new Set(violatedSegmentIndices)
+
+  // One LineString per segment so each can be coloured independently
+  const segmentFeatures: GeoJSON.Feature[] = positions.slice(0, -1).map((pos, i) => ({
+    type: 'Feature',
+    geometry: { type: 'LineString', coordinates: [pos, positions[i + 1]] },
+    properties: { segmentIndex: i, violated: violated.has(i) },
+  }))
+
+  const pointFeatures: GeoJSON.Feature[] = positions.map((pos, i) => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: pos },
+    properties: { role: roles[i] ?? 'corner' },
+  }))
+
   return {
     type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates: positions },
-        properties: {},
-      },
-      ...positions.map((pos, i) => ({
-        type: 'Feature' as const,
-        geometry: { type: 'Point' as const, coordinates: pos },
-        properties: { role: roles[i] ?? 'corner' },
-      })),
-    ],
+    features: [...segmentFeatures, ...pointFeatures],
   }
 }
 
@@ -140,12 +149,13 @@ function addTrackLayers(
   positions: GeoJsonPosition[],
   roles: PointRole[],
   layPitZones: LayPitZone[],
-  breakEligibility: BreakEligibility[]
+  breakEligibility: BreakEligibility[],
+  violatedSegmentIndices: number[]
 ): void {
   // --- Main track ---
   map.addSource(SOURCE_ID, {
     type: 'geojson',
-    data: buildGeoJson(positions, roles),
+    data: buildGeoJson(positions, roles, violatedSegmentIndices),
   })
   map.addLayer({
     id: LAYER_LINE_ID,
@@ -153,7 +163,11 @@ function addTrackLayers(
     source: SOURCE_ID,
     filter: ['==', '$type', 'LineString'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': LINE_COLOR, 'line-width': 3, 'line-opacity': 0.9 },
+    paint: {
+      'line-color': ['case', ['get', 'violated'], '#dc2626', LINE_COLOR],
+      'line-width': ['case', ['get', 'violated'], 4, 3],
+      'line-opacity': 0.9,
+    },
   })
   map.addLayer({
     id: LAYER_POINTS_ID,
@@ -236,6 +250,7 @@ export function MapView({
   pointRoles,
   layPitZones,
   breakEligibility,
+  violatedSegmentIndices,
   rulerPointA,
   rulerPointB,
   onMapClick,
@@ -268,6 +283,11 @@ export function MapView({
   useEffect(() => {
     breakEligibilityRef.current = breakEligibility
   }, [breakEligibility])
+
+  const violatedSegmentIndicesRef = useRef(violatedSegmentIndices)
+  useEffect(() => {
+    violatedSegmentIndicesRef.current = violatedSegmentIndices
+  }, [violatedSegmentIndices])
 
   useEffect(() => {
     if (!mapContainerRef.current) return
@@ -302,7 +322,8 @@ export function MapView({
         trackPositionsRef.current,
         pointRolesRef.current,
         layPitZonesRef.current,
-        breakEligibilityRef.current
+        breakEligibilityRef.current,
+        violatedSegmentIndicesRef.current
       )
     }
 
@@ -365,7 +386,7 @@ export function MapView({
     function updateData() {
       const m = map!
       const source = m.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined
-      if (source) source.setData(buildGeoJson(trackPositions, pointRoles))
+      if (source) source.setData(buildGeoJson(trackPositions, pointRoles, violatedSegmentIndices))
       const layPitSource = m.getSource(SOURCE_LAY_PIT) as maplibregl.GeoJSONSource | undefined
       if (layPitSource) layPitSource.setData(buildLayPitGeoJson(layPitZones))
       const breakSource = m.getSource(SOURCE_BREAK) as maplibregl.GeoJSONSource | undefined
@@ -379,7 +400,15 @@ export function MapView({
     } else {
       map.once('load', updateData)
     }
-  }, [trackPositions, pointRoles, layPitZones, breakEligibility, rulerPointA, rulerPointB])
+  }, [
+    trackPositions,
+    pointRoles,
+    layPitZones,
+    breakEligibility,
+    violatedSegmentIndices,
+    rulerPointA,
+    rulerPointB,
+  ])
 
   return <div ref={mapContainerRef} className="mapContainer" />
 }

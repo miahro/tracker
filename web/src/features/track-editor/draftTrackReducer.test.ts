@@ -244,6 +244,24 @@ describe('deriveDraftTrack', () => {
     }
   })
 
+  it('compassBearingDegrees is in 0–360 range', () => {
+    const d = deriveDraftTrack(drawing(P1, P2, P3))
+    for (const info of d.segmentInfos) {
+      expect(info.compassBearingDegrees).toBeGreaterThanOrEqual(0)
+      expect(info.compassBearingDegrees).toBeLessThan(360)
+    }
+  })
+
+  it('compassBearingDegrees differs from true bearing by approximately Finnish declination (~10°)', () => {
+    // P1/P2 are Finnish coords — declination is ~+10°, so compass < true
+    const d = deriveDraftTrack(drawing(P1, P2))
+    const diff = d.segmentInfos[0].bearingDegrees - d.segmentInfos[0].compassBearingDegrees
+    // Allow for wrap-around: diff should be ~+10 (or ~−350 if wrapped)
+    const normalised = ((diff % 360) + 360) % 360
+    expect(normalised).toBeGreaterThan(5)
+    expect(normalised).toBeLessThan(15)
+  })
+
   it('segmentInfos lengthMeters is positive', () => {
     const d = deriveDraftTrack(drawing(P1, P2))
     expect(d.segmentInfos[0].lengthMeters).toBeGreaterThan(0)

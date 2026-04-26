@@ -74,7 +74,7 @@
 - [x] Undo last point, Reset
 - [x] Finish track → assembles `Track` with START + FINISH objects
 - [x] Summary bar: total length, segment lengths, bearings
-- [ ] Declination corrected bearing
+- [x] Declination corrected bearing
 - [x] Enforce segment count during drawing:
   - AVO: exactly 4 points (3 segments) — Finish auto-triggers, further clicks blocked
   - VOI: exactly 5 points (4 segments) — same

@@ -15,6 +15,7 @@ import {
   coordinateFromGeoJson,
   type GeoJsonPosition,
 } from '../../adapters/geojson'
+import { getDeclinationDegrees, trueToMagneticBearing } from '../../declination'
 
 // ---------------------------------------------------------------------------
 // State
@@ -108,7 +109,14 @@ export function draftTrackReducer(
 export interface SegmentInfo {
   index: number
   lengthMeters: number
+  /** True (grid) bearing, 0–360°. */
   bearingDegrees: number
+  /**
+   * Magnetic compass bearing, 0–360°.
+   * Computed by subtracting the WMM declination at the segment midpoint.
+   * Equal to bearingDegrees when declination data is unavailable.
+   */
+  compassBearingDegrees: number
   /**
    * True when this segment is shorter than the 150 m minimum required by AVO and VOI rules.
    * Always false for TRAINING (no minimum applies).
@@ -154,10 +162,18 @@ export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
 
   const segmentInfos: SegmentInfo[] = segments.map((s) => {
     const lengthMeters = getSegmentLengthMeters(s)
+    const bearingDegrees = getSegmentBearingDegrees(s)
+    // Use segment midpoint for declination — more accurate than either endpoint
+    const midpoint = {
+      lat: (s.start.lat + s.end.lat) / 2,
+      lon: (s.start.lon + s.end.lon) / 2,
+    }
+    const declination = getDeclinationDegrees(midpoint)
     return {
       index: s.sequenceIndex,
       lengthMeters,
-      bearingDegrees: getSegmentBearingDegrees(s),
+      bearingDegrees,
+      compassBearingDegrees: trueToMagneticBearing(bearingDegrees, declination),
       isTooShort: enforceMinLength && lengthMeters < MIN_SEGMENT_LENGTH_METERS,
     }
   })

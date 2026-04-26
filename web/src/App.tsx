@@ -109,7 +109,9 @@ export default function App() {
               data-testid={`summary-seg-${info.index}`}
             >
               Seg {info.index + 1}: {Math.round(info.lengthMeters)} m &nbsp;·&nbsp;{' '}
-              {Math.round(info.bearingDegrees)}°{info.isTooShort && ' ⚠'}
+              {Math.round(info.bearingDegrees)}° true &nbsp;·&nbsp;{' '}
+              {Math.round(info.compassBearingDegrees)}° mag
+              {info.isTooShort && ' ⚠'}
             </span>
           ))}
         </div>

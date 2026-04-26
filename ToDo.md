@@ -75,11 +75,11 @@
 - [x] Finish track → assembles `Track` with START + FINISH objects
 - [x] Summary bar: total length, segment lengths, bearings
 - [ ] Declination corrected bearing
-- [ ] Enforce segment count during drawing:
+- [x] Enforce segment count during drawing:
   - AVO: exactly 4 points (3 segments) — Finish auto-triggers, further clicks blocked
   - VOI: exactly 5 points (4 segments) — same
   - TRAINING: unlimited, Finish available after 2 points (as now)
-- [ ] Minimum segment length warning (< 150 m) shown during drawing
+- [x] Minimum segment length warning (< 150 m) shown during drawing
 
 ---
 

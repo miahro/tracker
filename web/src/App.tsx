@@ -8,7 +8,7 @@ import { segmentsToGeoJson } from './adapters/geojson'
 
 export default function App() {
   const [baseMapId, setBaseMapId] = useState<BaseMapId>('nls-vector')
-  const { state, derived, startDrawing, addPoint, undo, reset } = useDraftTrack()
+  const { state, derived, startDrawing, addPoint, undo, finish, reset } = useDraftTrack()
 
   const trackPositions = segmentsToGeoJson(derived.segments)
 
@@ -18,7 +18,9 @@ export default function App() {
         <div className="title">Trail Tracker</div>
         <div className="subtle">Base map:</div>
         <BaseMapToggle value={baseMapId} onChange={setBaseMapId} />
+
         <div className="editorControls" data-testid="editor-controls">
+          {/* Idle — choose track type */}
           {state.mode === 'idle' && (
             <button
               className="pillButton"
@@ -46,6 +48,8 @@ export default function App() {
               Draw Training
             </button>
           )}
+
+          {/* Drawing — status + actions */}
           {state.mode === 'drawing' && (
             <span className="subtle" data-testid="drawing-status">
               {state.trackType} — {state.points.length} pt — {Math.round(derived.totalLengthMeters)}{' '}
@@ -57,6 +61,15 @@ export default function App() {
               Undo
             </button>
           )}
+          {derived.canFinish && (
+            <button
+              className="pillButton pillButtonActive"
+              data-testid="btn-finish"
+              onClick={finish}
+            >
+              Finish
+            </button>
+          )}
           {state.mode !== 'idle' && (
             <button className="pillButton" data-testid="btn-reset" onClick={reset}>
               Reset
@@ -64,6 +77,17 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {/* Finished track summary */}
+      {derived.finishedTrack && (
+        <div className="trackSummary" data-testid="track-summary">
+          <span className="trackSummaryType" data-testid="summary-type">
+            {derived.finishedTrack.type}
+          </span>
+          <span data-testid="summary-length">{Math.round(derived.totalLengthMeters)} m</span>
+          <span data-testid="summary-points">{state.points.length} points</span>
+        </div>
+      )}
 
       <main className="main">
         <MapView

@@ -219,4 +219,54 @@ describe('deriveDraftTrack', () => {
     const finished = { ...drawing(P1, P2), mode: 'finished' as const }
     expect(deriveDraftTrack(finished).canFinish).toBe(false)
   })
+
+  it('finishedTrack is null when drawing', () => {
+    expect(deriveDraftTrack(drawing(P1, P2)).finishedTrack).toBeNull()
+  })
+
+  it('finishedTrack is null when idle', () => {
+    expect(deriveDraftTrack(INITIAL_STATE).finishedTrack).toBeNull()
+  })
+
+  it('finishedTrack is assembled with START and FINISH objects when finished', () => {
+    const finished = { ...drawing(P1, P2, P3), mode: 'finished' as const }
+    const track = deriveDraftTrack(finished).finishedTrack
+
+    expect(track).not.toBeNull()
+    expect(track!.objects).toHaveLength(2)
+    expect(track!.objects[0].type).toBe('START')
+    expect(track!.objects[1].type).toBe('FINISH')
+  })
+
+  it('finishedTrack START position matches first point', () => {
+    const finished = { ...drawing(P1, P2), mode: 'finished' as const }
+    const track = deriveDraftTrack(finished).finishedTrack!
+    const start = track.objects.find((o) => o.type === 'START')!
+
+    expect(start.position).toEqual({ lat: P1[1], lon: P1[0] })
+  })
+
+  it('finishedTrack FINISH position matches last point', () => {
+    const finished = { ...drawing(P1, P2, P3), mode: 'finished' as const }
+    const track = deriveDraftTrack(finished).finishedTrack!
+    const finish = track.objects.find((o) => o.type === 'FINISH')!
+
+    expect(finish.position).toEqual({ lat: P3[1], lon: P3[0] })
+  })
+
+  it('finishedTrack preserves track type', () => {
+    const voiState: DraftTrackState = { mode: 'finished', trackType: 'VOI', points: [P1, P2] }
+    expect(deriveDraftTrack(voiState).finishedTrack!.type).toBe('VOI')
+  })
+
+  it('finishedTrack works for TRAINING type', () => {
+    const trainingState: DraftTrackState = {
+      mode: 'finished',
+      trackType: 'TRAINING',
+      points: [P1, P2, P3, P4],
+    }
+    const track = deriveDraftTrack(trainingState).finishedTrack!
+    expect(track.type).toBe('TRAINING')
+    expect(track.segments).toHaveLength(3)
+  })
 })

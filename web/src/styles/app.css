@@ -59,3 +59,18 @@
   gap: 0.5rem;
   margin-left: auto;
 }
+
+.trackSummary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.4rem 1rem;
+  background: #f0f7ff;
+  border-bottom: 1px solid #c8dff8;
+  font-size: 0.9rem;
+}
+
+.trackSummaryType {
+  font-weight: 600;
+  color: #007acc;
+}

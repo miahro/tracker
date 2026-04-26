@@ -30,6 +30,10 @@ describe('Track editor controls', () => {
     cy.get('[data-testid="drawing-status"]').should('not.exist')
   })
 
+  it('does not show track summary when idle', () => {
+    cy.get('[data-testid="track-summary"]').should('not.exist')
+  })
+
   // ---------------------------------------------------------------------------
   // Entering drawing mode
   // ---------------------------------------------------------------------------
@@ -52,6 +56,18 @@ describe('Track editor controls', () => {
     cy.get('[data-testid="btn-draw-avo"]').click()
 
     cy.get('[data-testid="btn-undo"]').should('not.exist')
+  })
+
+  it('does not show Finish button with no points', () => {
+    cy.get('[data-testid="btn-draw-avo"]').click()
+
+    cy.get('[data-testid="btn-finish"]').should('not.exist')
+  })
+
+  it('does not show track summary while drawing', () => {
+    cy.get('[data-testid="btn-draw-avo"]').click()
+
+    cy.get('[data-testid="track-summary"]').should('not.exist')
   })
 
   it('enters drawing mode with VOI as well', () => {

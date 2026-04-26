@@ -3,9 +3,13 @@
 // Pure reducer for draft track editor state.
 // No React dependency — fully unit-testable in isolation.
 
-import type { TrackType, TrackSegment } from '@trail-tracker/domain'
+import type { TrackType, TrackSegment, Track } from '@trail-tracker/domain'
 import { getTrackLengthMeters } from '@trail-tracker/domain'
-import { segmentsFromGeoJson, type GeoJsonPosition } from '../../adapters/geojson'
+import {
+  segmentsFromGeoJson,
+  coordinateFromGeoJson,
+  type GeoJsonPosition,
+} from '../../adapters/geojson'
 
 // ---------------------------------------------------------------------------
 // State
@@ -82,6 +86,11 @@ export interface DraftTrackDerived {
   totalLengthMeters: number
   canFinish: boolean
   canUndo: boolean
+  /**
+   * Fully assembled Track with START + FINISH objects.
+   * Only present when mode === 'finished'.
+   */
+  finishedTrack: Track | null
 }
 
 export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
@@ -94,10 +103,34 @@ export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
     objects: [],
   })
 
+  // Assemble a proper Track once drawing is finished
+  const finishedTrack: Track | null =
+    state.mode === 'finished' && state.points.length >= 2
+      ? {
+          id: 'draft',
+          name: `${state.trackType} track`,
+          type: state.trackType,
+          segments,
+          objects: [
+            {
+              type: 'START',
+              id: 'obj-start',
+              position: coordinateFromGeoJson(state.points[0]),
+            },
+            {
+              type: 'FINISH',
+              id: 'obj-finish',
+              position: coordinateFromGeoJson(state.points[state.points.length - 1]),
+            },
+          ],
+        }
+      : null
+
   return {
     segments,
     totalLengthMeters,
     canFinish: state.mode === 'drawing' && state.points.length >= 2,
     canUndo: state.mode === 'drawing' && state.points.length > 0,
+    finishedTrack,
   }
 }

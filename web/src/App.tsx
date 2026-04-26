@@ -14,6 +14,14 @@ export default function App() {
 
   const trackPositions = segmentsToGeoJson(derived.segments)
 
+  // Role of each point: start, corner(s), finish — drives map marker styling
+  type PointRole = 'start' | 'corner' | 'finish'
+  const pointRoles: PointRole[] = trackPositions.map((_, i) => {
+    if (i === 0) return 'start'
+    if (i === trackPositions.length - 1 && state.mode === 'finished') return 'finish'
+    return 'corner'
+  })
+
   function handleValidate() {
     if (derived.finishedTrack) {
       setViolations(validateTrack(derived.finishedTrack))
@@ -163,6 +171,7 @@ export default function App() {
         <MapView
           baseMapId={baseMapId}
           trackPositions={trackPositions}
+          pointRoles={pointRoles}
           onMapClick={
             state.mode === 'drawing' && !derived.isPointLimitReached ? addPoint : undefined
           }

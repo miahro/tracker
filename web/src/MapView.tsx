@@ -17,9 +17,12 @@ interface MapAntFeatureName {
   code: string
 }
 
+export type PointRole = 'start' | 'corner' | 'finish'
+
 interface MapViewProps {
   baseMapId: BaseMapId
   trackPositions: GeoJsonPosition[]
+  pointRoles: PointRole[]
   onMapClick?: (position: GeoJsonPosition) => void
 }
 
@@ -30,10 +33,8 @@ const SOURCE_ID = 'draft-track'
 const LAYER_LINE_ID = 'draft-track-line'
 const LAYER_POINTS_ID = 'draft-track-points'
 const LINE_COLOR = '#e63946'
-const POINT_COLOR = '#e63946'
-const POINT_STROKE = '#ffffff'
 
-function buildGeoJson(positions: GeoJsonPosition[]): GeoJSON.FeatureCollection {
+function buildGeoJson(positions: GeoJsonPosition[], roles: PointRole[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: [
@@ -42,20 +43,25 @@ function buildGeoJson(positions: GeoJsonPosition[]): GeoJSON.FeatureCollection {
         geometry: { type: 'LineString', coordinates: positions },
         properties: {},
       },
-      ...positions.map((pos) => ({
+      ...positions.map((pos, i) => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: pos },
-        properties: {},
+        properties: { role: roles[i] ?? 'corner' },
       })),
     ],
   }
 }
 
-function addTrackLayers(map: maplibregl.Map, positions: GeoJsonPosition[]): void {
+function addTrackLayers(
+  map: maplibregl.Map,
+  positions: GeoJsonPosition[],
+  roles: PointRole[]
+): void {
   map.addSource(SOURCE_ID, {
     type: 'geojson',
-    data: buildGeoJson(positions),
+    data: buildGeoJson(positions, roles),
   })
+
   map.addLayer({
     id: LAYER_LINE_ID,
     type: 'line',
@@ -64,21 +70,32 @@ function addTrackLayers(map: maplibregl.Map, positions: GeoJsonPosition[]): void
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': LINE_COLOR, 'line-width': 3, 'line-opacity': 0.9 },
   })
+
+  // Data-driven: colour and size by role
+  // start = blue, finish = green, corner = red (matches track line)
   map.addLayer({
     id: LAYER_POINTS_ID,
     type: 'circle',
     source: SOURCE_ID,
     filter: ['==', '$type', 'Point'],
     paint: {
-      'circle-radius': 5,
-      'circle-color': POINT_COLOR,
+      'circle-radius': ['match', ['get', 'role'], 'start', 7, 'finish', 7, 5],
+      'circle-color': [
+        'match',
+        ['get', 'role'],
+        'start',
+        '#2563eb', // blue
+        'finish',
+        '#16a34a', // green
+        '#e63946', // red for corners
+      ],
       'circle-stroke-width': 2,
-      'circle-stroke-color': POINT_STROKE,
+      'circle-stroke-color': '#ffffff',
     },
   })
 }
 
-export function MapView({ baseMapId, trackPositions, onMapClick }: MapViewProps) {
+export function MapView({ baseMapId, trackPositions, pointRoles, onMapClick }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const labelMarkersRef = useRef<maplibregl.Marker[]>([])
@@ -92,6 +109,11 @@ export function MapView({ baseMapId, trackPositions, onMapClick }: MapViewProps)
   useEffect(() => {
     trackPositionsRef.current = trackPositions
   }, [trackPositions])
+
+  const pointRolesRef = useRef(pointRoles)
+  useEffect(() => {
+    pointRolesRef.current = pointRoles
+  }, [pointRoles])
 
   useEffect(() => {
     if (!mapContainerRef.current) return
@@ -121,7 +143,7 @@ export function MapView({ baseMapId, trackPositions, onMapClick }: MapViewProps)
     })
 
     function addLayersAndData() {
-      addTrackLayers(map, trackPositionsRef.current)
+      addTrackLayers(map, trackPositionsRef.current, pointRolesRef.current)
     }
 
     if (map.isStyleLoaded()) {
@@ -182,7 +204,7 @@ export function MapView({ baseMapId, trackPositions, onMapClick }: MapViewProps)
 
     function updateData() {
       const source = map!.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined
-      if (source) source.setData(buildGeoJson(trackPositions))
+      if (source) source.setData(buildGeoJson(trackPositions, pointRoles))
     }
 
     if (map.isStyleLoaded()) {

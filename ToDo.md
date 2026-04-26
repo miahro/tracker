@@ -56,19 +56,26 @@
 
 ---
 
-## Phase 2.5 – Track Data Pipeline & Map Primitives 🔄
+## Phase 2.5 – Track Data Pipeline & Map Primitives ✅
 
 - [x] GeoJSON ↔ domain adapter (`web/src/adapters/geojson.ts`):
   - [x] `coordinateFromGeoJson` / `coordinateToGeoJson`
   - [x] `segmentsFromGeoJson` / `segmentsToGeoJson`
   - [x] Coordinate convention locked: GeoJSON `[lon, lat]` ↔ domain `{ lat, lon }`
   - [x] Full unit test coverage including round-trips
-- [ ] Draft track store — `useDraftTrack` hook (`web/src/features/track-editor/useDraftTrack.ts`):
-  - [ ] Editor state machine: `idle | drawing | finished`
-  - [ ] Accumulated click points
-  - [ ] `addPoint`, `undo`, `reset` actions
-  - [ ] Derives `TrackSegment[]` and total length via adapter + domain helpers
-  - [ ] Track type selection (`AVO | VOI | TRAINING`)
+- [x] Draft track store (`web/src/features/track-editor/`):
+  - [x] Pure reducer `draftTrackReducer` — no React dependency, fully unit-tested
+  - [x] Editor state machine: `idle | drawing | finished`
+  - [x] Actions: `START_DRAWING`, `ADD_POINT`, `UNDO`, `FINISH`, `RESET`
+  - [x] `deriveDraftTrack` — computes `segments`, `totalLengthMeters`, `canFinish`, `canUndo`
+  - [x] `useDraftTrack` hook — thin React wrapper around the reducer
+  - [x] Track type selection (`AVO | VOI | TRAINING`)
+  - [x] 29 unit tests covering all actions, guards, and derived values
+- [x] Unified test runner (`vitest.config.ts` at repo root):
+  - [x] Runs all tests (domain + web) with single `npm test`
+  - [x] `@trail-tracker/domain` alias resolves to source — no build step needed
+  - [x] `domain/package.json` `main`/`types` point at `src/index.ts` for VSCode resolution
+  - [x] Root `tsconfig.json` added for config files with `moduleResolution: Bundler`
 - [ ] Minimal map rendering primitives:
   - [ ] Polyline layer for drawn segments
   - [ ] Vertex points layer

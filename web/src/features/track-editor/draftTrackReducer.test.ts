@@ -1,0 +1,222 @@
+// web/src/features/track-editor/draftTrackReducer.test.ts
+import { describe, it, expect } from 'vitest'
+import {
+  draftTrackReducer,
+  deriveDraftTrack,
+  INITIAL_STATE,
+  type DraftTrackState,
+} from './draftTrackReducer'
+import type { GeoJsonPosition } from '../../adapters/geojson'
+
+// Finnish coordinates used throughout — realistic for a MEJÄ track
+const P1: GeoJsonPosition = [25.1, 60.3]
+const P2: GeoJsonPosition = [25.12, 60.31]
+const P3: GeoJsonPosition = [25.14, 60.32]
+const P4: GeoJsonPosition = [25.16, 60.33]
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function drawing(...points: GeoJsonPosition[]): DraftTrackState {
+  let state = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'AVO' })
+  for (const p of points) {
+    state = draftTrackReducer(state, { type: 'ADD_POINT', position: p })
+  }
+  return state
+}
+
+// ---------------------------------------------------------------------------
+// INITIAL_STATE
+// ---------------------------------------------------------------------------
+
+describe('INITIAL_STATE', () => {
+  it('starts idle with no points and AVO type', () => {
+    expect(INITIAL_STATE.mode).toBe('idle')
+    expect(INITIAL_STATE.points).toHaveLength(0)
+    expect(INITIAL_STATE.trackType).toBe('AVO')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// START_DRAWING
+// ---------------------------------------------------------------------------
+
+describe('START_DRAWING', () => {
+  it('transitions from idle to drawing', () => {
+    const state = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'AVO' })
+    expect(state.mode).toBe('drawing')
+    expect(state.points).toHaveLength(0)
+  })
+
+  it('sets the requested track type', () => {
+    const state = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'VOI' })
+    expect(state.trackType).toBe('VOI')
+  })
+
+  it('clears points when restarting from finished', () => {
+    const finished = { ...drawing(P1, P2), mode: 'finished' as const }
+    const restarted = draftTrackReducer(finished, { type: 'START_DRAWING', trackType: 'TRAINING' })
+    expect(restarted.mode).toBe('drawing')
+    expect(restarted.points).toHaveLength(0)
+    expect(restarted.trackType).toBe('TRAINING')
+  })
+
+  it('is a no-op when already drawing', () => {
+    const state = drawing(P1)
+    const again = draftTrackReducer(state, { type: 'START_DRAWING', trackType: 'VOI' })
+    expect(again).toBe(state) // same reference — no change
+  })
+})
+
+// ---------------------------------------------------------------------------
+// ADD_POINT
+// ---------------------------------------------------------------------------
+
+describe('ADD_POINT', () => {
+  it('appends a point while drawing', () => {
+    const state = drawing(P1)
+    expect(state.points).toHaveLength(1)
+    expect(state.points[0]).toEqual(P1)
+  })
+
+  it('appends multiple points in order', () => {
+    const state = drawing(P1, P2, P3)
+    expect(state.points).toEqual([P1, P2, P3])
+  })
+
+  it('is a no-op when idle', () => {
+    const state = draftTrackReducer(INITIAL_STATE, { type: 'ADD_POINT', position: P1 })
+    expect(state.points).toHaveLength(0)
+  })
+
+  it('is a no-op when finished', () => {
+    const finished = { ...drawing(P1, P2), mode: 'finished' as const }
+    const state = draftTrackReducer(finished, { type: 'ADD_POINT', position: P3 })
+    expect(state.points).toHaveLength(2)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// UNDO
+// ---------------------------------------------------------------------------
+
+describe('UNDO', () => {
+  it('removes the last point', () => {
+    const state = draftTrackReducer(drawing(P1, P2), { type: 'UNDO' })
+    expect(state.points).toEqual([P1])
+  })
+
+  it('results in empty points after undoing the only point', () => {
+    const state = draftTrackReducer(drawing(P1), { type: 'UNDO' })
+    expect(state.points).toHaveLength(0)
+  })
+
+  it('is a no-op when no points exist', () => {
+    const empty = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'AVO' })
+    const state = draftTrackReducer(empty, { type: 'UNDO' })
+    expect(state.points).toHaveLength(0)
+  })
+
+  it('is a no-op when idle', () => {
+    const state = draftTrackReducer(INITIAL_STATE, { type: 'UNDO' })
+    expect(state).toBe(INITIAL_STATE)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// FINISH
+// ---------------------------------------------------------------------------
+
+describe('FINISH', () => {
+  it('transitions to finished with 2+ points', () => {
+    const state = draftTrackReducer(drawing(P1, P2), { type: 'FINISH' })
+    expect(state.mode).toBe('finished')
+  })
+
+  it('preserves points after finishing', () => {
+    const state = draftTrackReducer(drawing(P1, P2, P3), { type: 'FINISH' })
+    expect(state.points).toEqual([P1, P2, P3])
+  })
+
+  it('is a no-op with fewer than 2 points', () => {
+    const onePoint = drawing(P1)
+    const state = draftTrackReducer(onePoint, { type: 'FINISH' })
+    expect(state.mode).toBe('drawing')
+  })
+
+  it('is a no-op when idle', () => {
+    const state = draftTrackReducer(INITIAL_STATE, { type: 'FINISH' })
+    expect(state.mode).toBe('idle')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// RESET
+// ---------------------------------------------------------------------------
+
+describe('RESET', () => {
+  it('returns to initial state from drawing', () => {
+    const state = draftTrackReducer(drawing(P1, P2, P3), { type: 'RESET' })
+    expect(state).toEqual(INITIAL_STATE)
+  })
+
+  it('returns to initial state from finished', () => {
+    const finished = { ...drawing(P1, P2), mode: 'finished' as const }
+    const state = draftTrackReducer(finished, { type: 'RESET' })
+    expect(state).toEqual(INITIAL_STATE)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// deriveDraftTrack
+// ---------------------------------------------------------------------------
+
+describe('deriveDraftTrack', () => {
+  it('returns empty segments and zero length when idle', () => {
+    const d = deriveDraftTrack(INITIAL_STATE)
+    expect(d.segments).toHaveLength(0)
+    expect(d.totalLengthMeters).toBe(0)
+  })
+
+  it('returns no segments for a single point', () => {
+    const d = deriveDraftTrack(drawing(P1))
+    expect(d.segments).toHaveLength(0)
+  })
+
+  it('returns N-1 segments for N points', () => {
+    const d = deriveDraftTrack(drawing(P1, P2, P3, P4))
+    expect(d.segments).toHaveLength(3)
+  })
+
+  it('computes a positive total length for 2+ points', () => {
+    const d = deriveDraftTrack(drawing(P1, P2))
+    expect(d.totalLengthMeters).toBeGreaterThan(0)
+  })
+
+  it('canUndo is false when idle', () => {
+    expect(deriveDraftTrack(INITIAL_STATE).canUndo).toBe(false)
+  })
+
+  it('canUndo is false with no points', () => {
+    const empty = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'AVO' })
+    expect(deriveDraftTrack(empty).canUndo).toBe(false)
+  })
+
+  it('canUndo is true with at least one point while drawing', () => {
+    expect(deriveDraftTrack(drawing(P1)).canUndo).toBe(true)
+  })
+
+  it('canFinish is false with fewer than 2 points', () => {
+    expect(deriveDraftTrack(drawing(P1)).canFinish).toBe(false)
+  })
+
+  it('canFinish is true with 2+ points while drawing', () => {
+    expect(deriveDraftTrack(drawing(P1, P2)).canFinish).toBe(true)
+  })
+
+  it('canFinish is false when finished', () => {
+    const finished = { ...drawing(P1, P2), mode: 'finished' as const }
+    expect(deriveDraftTrack(finished).canFinish).toBe(false)
+  })
+})

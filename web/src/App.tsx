@@ -37,9 +37,19 @@ export default function App() {
               Draw VOI
             </button>
           )}
+          {state.mode === 'idle' && (
+            <button
+              className="pillButton"
+              data-testid="btn-draw-training"
+              onClick={() => startDrawing('TRAINING')}
+            >
+              Draw Training
+            </button>
+          )}
           {state.mode === 'drawing' && (
             <span className="subtle" data-testid="drawing-status">
-              {state.points.length} pt — {Math.round(derived.totalLengthMeters)} m
+              {state.trackType} — {state.points.length} pt — {Math.round(derived.totalLengthMeters)}{' '}
+              m
             </span>
           )}
           {derived.canUndo && (

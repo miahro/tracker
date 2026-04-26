@@ -13,10 +13,11 @@ describe('Track editor controls', () => {
   // Idle state
   // ---------------------------------------------------------------------------
 
-  it('shows Draw AVO and Draw VOI buttons when idle', () => {
+  it('shows Draw AVO, Draw VOI and Draw Training buttons when idle', () => {
     cy.get('[data-testid="editor-controls"]').within(() => {
       cy.get('[data-testid="btn-draw-avo"]').should('be.visible')
       cy.get('[data-testid="btn-draw-voi"]').should('be.visible')
+      cy.get('[data-testid="btn-draw-training"]').should('be.visible')
     })
   })
 
@@ -60,6 +61,14 @@ describe('Track editor controls', () => {
     cy.get('[data-testid="btn-reset"]').should('be.visible')
   })
 
+  it('enters drawing mode with Training', () => {
+    cy.get('[data-testid="btn-draw-training"]').click()
+
+    cy.get('[data-testid="btn-draw-training"]').should('not.exist')
+    cy.get('[data-testid="btn-reset"]').should('be.visible')
+    cy.get('[data-testid="drawing-status"]').should('contain', 'TRAINING')
+  })
+
   // ---------------------------------------------------------------------------
   // Reset returns to idle
   // ---------------------------------------------------------------------------
@@ -70,6 +79,7 @@ describe('Track editor controls', () => {
 
     cy.get('[data-testid="btn-draw-avo"]').should('be.visible')
     cy.get('[data-testid="btn-draw-voi"]').should('be.visible')
+    cy.get('[data-testid="btn-draw-training"]').should('be.visible')
     cy.get('[data-testid="btn-reset"]').should('not.exist')
     cy.get('[data-testid="drawing-status"]').should('not.exist')
   })

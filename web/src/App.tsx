@@ -56,6 +56,16 @@ export default function App() {
               m
             </span>
           )}
+          {state.mode === 'drawing' && derived.hasShortSegment && (
+            <span className="warningBadge" data-testid="warning-short-segment">
+              ⚠ segment &lt;150 m
+            </span>
+          )}
+          {state.mode === 'drawing' && derived.startFinishTooClose && (
+            <span className="warningBadge" data-testid="warning-start-finish-distance">
+              ⚠ start↔finish &lt;150 m
+            </span>
+          )}
           {derived.canUndo && (
             <button className="pillButton" data-testid="btn-undo" onClick={undo}>
               Undo
@@ -86,15 +96,20 @@ export default function App() {
           </span>
           <span data-testid="summary-length">{Math.round(derived.totalLengthMeters)} m</span>
           <span data-testid="summary-points">{state.points.length} points</span>
+          {derived.startFinishTooClose && (
+            <span className="warningBadge" data-testid="summary-warning-start-finish">
+              ⚠ start↔finish &lt;150 m
+            </span>
+          )}
           <span className="summaryDivider" />
           {derived.segmentInfos.map((info) => (
             <span
               key={info.index}
-              className="segmentInfo"
+              className={`segmentInfo${info.isTooShort ? ' segmentWarning' : ''}`}
               data-testid={`summary-seg-${info.index}`}
             >
               Seg {info.index + 1}: {Math.round(info.lengthMeters)} m &nbsp;·&nbsp;{' '}
-              {Math.round(info.bearingDegrees)}°
+              {Math.round(info.bearingDegrees)}°{info.isTooShort && ' ⚠'}
             </span>
           ))}
         </div>

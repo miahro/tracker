@@ -327,6 +327,92 @@ describe('deriveDraftTrack', () => {
     expect(deriveDraftTrack(INITIAL_STATE).isPointLimitReached).toBe(false)
   })
 
+  // isTooShort / hasShortSegment
+  // P1→P2 are ~1.7 km apart (realistic Finnish coords) — well above 150 m
+  // We need points close enough to be under 150 m for the warning tests
+  const CLOSE_A: GeoJsonPosition = [25.1, 60.3]
+  const CLOSE_B: GeoJsonPosition = [25.1005, 60.3] // ~33 m east of CLOSE_A
+
+  it('isTooShort is false for a segment clearly above 150 m (AVO)', () => {
+    const d = deriveDraftTrack(drawing(P1, P2))
+    expect(d.segmentInfos[0].isTooShort).toBe(false)
+  })
+
+  it('isTooShort is true for a segment under 150 m (AVO)', () => {
+    const d = deriveDraftTrack(drawing(CLOSE_A, CLOSE_B))
+    expect(d.segmentInfos[0].isTooShort).toBe(true)
+  })
+
+  it('isTooShort is always false for TRAINING regardless of length', () => {
+    function trainingState(...pts: GeoJsonPosition[]): DraftTrackState {
+      let s = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'TRAINING' })
+      for (const p of pts) s = draftTrackReducer(s, { type: 'ADD_POINT', position: p })
+      return s
+    }
+    const d = deriveDraftTrack(trainingState(CLOSE_A, CLOSE_B))
+    expect(d.segmentInfos[0].isTooShort).toBe(false)
+  })
+
+  it('hasShortSegment is false when all segments are long enough (AVO)', () => {
+    const d = deriveDraftTrack(drawing(P1, P2, P3))
+    expect(d.hasShortSegment).toBe(false)
+  })
+
+  it('hasShortSegment is true when any segment is under 150 m (AVO)', () => {
+    const d = deriveDraftTrack(drawing(P1, P2, CLOSE_A, CLOSE_B))
+    // P2→CLOSE_A may or may not be short, but CLOSE_A→CLOSE_B definitely is
+    expect(d.hasShortSegment).toBe(true)
+  })
+
+  it('hasShortSegment is false for TRAINING even with short segments', () => {
+    let s = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'TRAINING' })
+    for (const p of [CLOSE_A, CLOSE_B]) {
+      s = draftTrackReducer(s, { type: 'ADD_POINT', position: p })
+    }
+    expect(deriveDraftTrack(s).hasShortSegment).toBe(false)
+  })
+
+  it('hasShortSegment is false with no segments', () => {
+    expect(deriveDraftTrack(INITIAL_STATE).hasShortSegment).toBe(false)
+  })
+
+  // startFinishTooClose
+  // A doubling-back AVO track: both segments are ~600 m (pass length check)
+  // but start and finish are only ~80 m apart (fail key-element separation)
+  const DOUBBACK_START: GeoJsonPosition = [25.1, 60.3]
+  const DOUBBACK_MID: GeoJsonPosition = [25.1, 60.3054] // ~600 m north
+  const DOUBBACK_END: GeoJsonPosition = [25.1015, 60.3] // ~80 m east of start
+
+  it('startFinishTooClose is false for a normal non-doubling track (AVO)', () => {
+    // P1, P2, P3 are all distinct and spread out — start→finish well over 150 m
+    const d = deriveDraftTrack(drawing(P1, P2, P3))
+    expect(d.startFinishTooClose).toBe(false)
+  })
+
+  it('startFinishTooClose is true when track doubles back to within 150 m of start (AVO)', () => {
+    const d = deriveDraftTrack(drawing(DOUBBACK_START, DOUBBACK_MID, DOUBBACK_END))
+    // Both segments ≥ 150 m — but start→finish is ~80 m
+    expect(d.segmentInfos[0].isTooShort).toBe(false)
+    expect(d.segmentInfos[1].isTooShort).toBe(false)
+    expect(d.startFinishTooClose).toBe(true)
+  })
+
+  it('startFinishTooClose is false for TRAINING even when start and finish are close', () => {
+    let s = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'TRAINING' })
+    for (const p of [DOUBBACK_START, DOUBBACK_MID, DOUBBACK_END]) {
+      s = draftTrackReducer(s, { type: 'ADD_POINT', position: p })
+    }
+    expect(deriveDraftTrack(s).startFinishTooClose).toBe(false)
+  })
+
+  it('startFinishTooClose is false with only one point', () => {
+    expect(deriveDraftTrack(drawing(P1)).startFinishTooClose).toBe(false)
+  })
+
+  it('startFinishTooClose is false when idle', () => {
+    expect(deriveDraftTrack(INITIAL_STATE).startFinishTooClose).toBe(false)
+  })
+
   it('finishedTrack is null when drawing', () => {
     expect(deriveDraftTrack(drawing(P1, P2)).finishedTrack).toBeNull()
   })

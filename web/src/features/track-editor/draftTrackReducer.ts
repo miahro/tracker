@@ -8,6 +8,7 @@ import {
   getTrackLengthMeters,
   getSegmentBearingDegrees,
   getSegmentLengthMeters,
+  distanceBetweenCoordinatesMeters,
 } from '@trail-tracker/domain'
 import {
   segmentsFromGeoJson,
@@ -108,6 +109,11 @@ export interface SegmentInfo {
   index: number
   lengthMeters: number
   bearingDegrees: number
+  /**
+   * True when this segment is shorter than the 150 m minimum required by AVO and VOI rules.
+   * Always false for TRAINING (no minimum applies).
+   */
+  isTooShort: boolean
 }
 
 export interface DraftTrackDerived {
@@ -123,6 +129,18 @@ export interface DraftTrackDerived {
    */
   isPointLimitReached: boolean
   /**
+   * True when at least one segment is below the 150 m minimum (AVO/VOI only).
+   * Always false for TRAINING.
+   */
+  hasShortSegment: boolean
+  /**
+   * True when start and finish are less than 150 m apart in a straight line
+   * (AVO/VOI only). Catches doubling-back tracks where all segments pass the
+   * length check but the key-element separation rule is still violated.
+   * Always false for TRAINING.
+   */
+  startFinishTooClose: boolean
+  /**
    * Fully assembled Track with START + FINISH objects.
    * Only present when mode === 'finished'.
    */
@@ -131,11 +149,34 @@ export interface DraftTrackDerived {
 
 export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
   const segments = segmentsFromGeoJson(state.points)
-  const segmentInfos: SegmentInfo[] = segments.map((s) => ({
-    index: s.sequenceIndex,
-    lengthMeters: getSegmentLengthMeters(s),
-    bearingDegrees: getSegmentBearingDegrees(s),
-  }))
+  const MIN_SEGMENT_LENGTH_METERS = 150
+  const enforceMinLength = state.trackType !== 'TRAINING'
+
+  const segmentInfos: SegmentInfo[] = segments.map((s) => {
+    const lengthMeters = getSegmentLengthMeters(s)
+    return {
+      index: s.sequenceIndex,
+      lengthMeters,
+      bearingDegrees: getSegmentBearingDegrees(s),
+      isTooShort: enforceMinLength && lengthMeters < MIN_SEGMENT_LENGTH_METERS,
+    }
+  })
+
+  const hasShortSegment = segmentInfos.some((s) => s.isTooShort)
+
+  /**
+   * Check start→finish straight-line distance (AVO/VOI only).
+   * Segments can each be ≥150 m while a doubling-back track brings start and
+   * finish closer than 150 m — violating the key-element separation rule.
+   * Only meaningful once there are at least 2 points (1 segment).
+   */
+  const startFinishTooClose =
+    enforceMinLength &&
+    state.points.length >= 2 &&
+    distanceBetweenCoordinatesMeters(
+      coordinateFromGeoJson(state.points[0]),
+      coordinateFromGeoJson(state.points[state.points.length - 1])
+    ) < MIN_SEGMENT_LENGTH_METERS
   const totalLengthMeters = getTrackLengthMeters({
     id: 'draft',
     name: 'draft',
@@ -187,6 +228,8 @@ export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
     canFinish,
     canUndo: state.mode === 'drawing' && state.points.length > 0,
     isPointLimitReached,
+    hasShortSegment,
+    startFinishTooClose,
     finishedTrack,
   }
 }

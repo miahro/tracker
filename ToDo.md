@@ -76,10 +76,10 @@
   - [x] `@trail-tracker/domain` alias resolves to source — no build step needed
   - [x] `domain/package.json` `main`/`types` point at `src/index.ts` for VSCode resolution
   - [x] Root `tsconfig.json` added for config files with `moduleResolution: Bundler`
-- [ ] Minimal map rendering primitives:
-  - [ ] Polyline layer for drawn segments
-  - [ ] Vertex points layer
-  - [ ] Selected / hovered vertex highlight
+- [x] Minimal map rendering primitives:
+  - [x] Polyline layer for drawn segments
+  - [x] Vertex points layer
+  - [x] Selected / hovered vertex highlight
 
 ---
 

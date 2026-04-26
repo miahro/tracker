@@ -10,7 +10,6 @@ export default function App() {
   const [baseMapId, setBaseMapId] = useState<BaseMapId>('nls-vector')
   const { state, derived, startDrawing, addPoint, undo, reset } = useDraftTrack()
 
-  // Convert domain segments back to GeoJSON positions for the map layer
   const trackPositions = segmentsToGeoJson(derived.segments)
 
   return (
@@ -19,29 +18,37 @@ export default function App() {
         <div className="title">Trail Tracker</div>
         <div className="subtle">Base map:</div>
         <BaseMapToggle value={baseMapId} onChange={setBaseMapId} />
-        <div className="editorControls">
+        <div className="editorControls" data-testid="editor-controls">
           {state.mode === 'idle' && (
-            <button className="pillButton" onClick={() => startDrawing('AVO')}>
+            <button
+              className="pillButton"
+              data-testid="btn-draw-avo"
+              onClick={() => startDrawing('AVO')}
+            >
               Draw AVO
             </button>
           )}
           {state.mode === 'idle' && (
-            <button className="pillButton" onClick={() => startDrawing('VOI')}>
+            <button
+              className="pillButton"
+              data-testid="btn-draw-voi"
+              onClick={() => startDrawing('VOI')}
+            >
               Draw VOI
             </button>
           )}
           {state.mode === 'drawing' && (
-            <span className="subtle">
+            <span className="subtle" data-testid="drawing-status">
               {state.points.length} pt — {Math.round(derived.totalLengthMeters)} m
             </span>
           )}
           {derived.canUndo && (
-            <button className="pillButton" onClick={undo}>
+            <button className="pillButton" data-testid="btn-undo" onClick={undo}>
               Undo
             </button>
           )}
           {state.mode !== 'idle' && (
-            <button className="pillButton" onClick={reset}>
+            <button className="pillButton" data-testid="btn-reset" onClick={reset}>
               Reset
             </button>
           )}

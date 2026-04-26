@@ -32,11 +32,11 @@
   - [x] `TrackObject` discriminated union:
     - [x] `START` (lähtö)
     - [x] `FINISH` (kaato)
-    - [x] `CORNER` (kulma)
-    - [x] `LAY_PIT` (makuupaikka)
-    - [x] `BREAK` (katko — VOI only)
+    - [x] `CORNER` (kulma) — implicit junction, used for VOI eligibility display
+    - [x] `LAY_PIT` (makuupaikka) — mobile-only, not placed in web planner
+    - [x] `BREAK` (katko — VOI only) — mobile-only, not placed in web planner
     - [x] `MARKER` (planning aid)
-- [x] Geometry helpers: distance, segment length, total track length
+- [x] Geometry helpers: distance, segment length, total track length, bearing
 - [x] Vitest set up; unit tests for all geometry helpers and TrackObject
 
 ---
@@ -58,79 +58,68 @@
 
 ## Phase 2.5 – Track Data Pipeline & Map Primitives ✅
 
-- [x] GeoJSON ↔ domain adapter (`web/src/adapters/geojson.ts`):
-  - [x] `coordinateFromGeoJson` / `coordinateToGeoJson`
-  - [x] `segmentsFromGeoJson` / `segmentsToGeoJson`
-  - [x] Coordinate convention locked: GeoJSON `[lon, lat]` ↔ domain `{ lat, lon }`
-  - [x] Full unit test coverage including round-trips
-- [x] Draft track store (`web/src/features/track-editor/`):
-  - [x] Pure reducer `draftTrackReducer` — no React dependency, fully unit-tested
-  - [x] Editor state machine: `idle | drawing | finished`
-  - [x] Actions: `START_DRAWING`, `ADD_POINT`, `UNDO`, `FINISH`, `RESET`
-  - [x] `deriveDraftTrack` — computes `segments`, `totalLengthMeters`, `canFinish`, `canUndo`
-  - [x] `useDraftTrack` hook — thin React wrapper around the reducer
-  - [x] Track type selection (`AVO | VOI | TRAINING`)
-  - [x] 29 unit tests covering all actions, guards, and derived values
-- [x] Unified test runner (`vitest.config.ts` at repo root):
-  - [x] Runs all tests (domain + web) with single `npm test`
-  - [x] `@trail-tracker/domain` alias resolves to source — no build step needed
-  - [x] `domain/package.json` `main`/`types` point at `src/index.ts` for VSCode resolution
-  - [x] Root `tsconfig.json` added for config files with `moduleResolution: Bundler`
-- [x] Minimal map rendering primitives:
-  - [x] Polyline layer for drawn segments
-  - [x] Vertex points layer
-  - [x] Selected / hovered vertex highlight
+- [x] GeoJSON ↔ domain adapter (`web/src/adapters/geojson.ts`)
+- [x] Coordinate convention locked: GeoJSON `[lon, lat]` ↔ domain `{ lat, lon }`
+- [x] Draft track store with pure reducer, state machine, and `useDraftTrack` hook
+- [x] Unified test runner (`vitest.config.ts`) — all tests with single `npm test`
+- [x] Polyline + vertex point map layers
 
 ---
 
-## Phase 3 – Basic Track Editor
+## Phase 3 – Basic Track Editor ✅ (mostly)
 
-- [x] UI: select track type (AVO / VOI / TRAINING) before drawing
-- [x] Click-to-add-point on map (append points)
-- [x] Draw polyline between added points
-- [x] Undo last point
-- [x] Reset / clear drawing
-- [x] "Finish track" workflow:
-  - [x] Freeze points; enter edit mode to modify
-  - [x] Auto-create START + FINISH objects from first/last point
-  - [x] Show total length + segment lengths
-- [x] Show grid bearings for segments
-- [ ] Snap-to-last-point tolerance (avoid micro-segments)
-- [ ] Warn on minimum segment length
+- [x] Track type selection: AVO / VOI / TRAINING
+- [x] Click-to-add-point on map
+- [x] Polyline drawn between points
+- [x] Undo last point, Reset
+- [x] Finish track → assembles `Track` with START + FINISH objects
+- [x] Summary bar: total length, segment lengths, bearings
+- [ ] Declination corrected bearing
+- [ ] Enforce segment count during drawing:
+  - AVO: exactly 4 points (3 segments) — Finish auto-triggers, further clicks blocked
+  - VOI: exactly 5 points (4 segments) — same
+  - TRAINING: unlimited, Finish available after 2 points (as now)
+- [ ] Minimum segment length warning (< 150 m) shown during drawing
 
 ---
 
 ## Phase 4 – Domain Rules & Validation
 
-- [ ] Rule models: `RuleSetAVO`, `RuleSetVOI`
-- [ ] Rule evaluation engine:
-  - Input: `Track`, `RuleSet | null`
-  - Output: `RuleViolation[]`
-- [ ] AVO rules + unit tests:
-  - [ ] Length 900–1000 m
-  - [ ] Exactly 2 corners
-  - [ ] Exactly 2 lay pits
-  - [ ] Age ≥ 12 h (metadata)
-  - [ ] ≥ 150 m between key elements
-  - [ ] ≥ 60 m from roads (metadata / manual input)
-- [ ] VOI rules + unit tests:
-  - [ ] Length 1200–1400 m
-  - [ ] Exactly 3 corners
-  - [ ] Exactly 4 lay pits (one per segment, ≥ 50 m from corner/finish)
-  - [ ] Exactly 1 break, ≥ 300 m before finish
-  - [ ] Age ≥ 18 h
-  - [ ] ≥ 150 m between key elements
-- [ ] "Validate Track" button in web UI
-- [ ] Training tracks: show length + segments, skip validation
+### 4a — Validatable from geometry (web + mobile)
+
+- [ ] `RuleViolation` type: `{ ruleId, severity, message, segmentIndex? }`
+- [ ] AVO length: 900–1000 m
+- [ ] VOI length: 1200–1400 m
+- [ ] All segments ≥ 150 m (AVO and VOI)
+- [ ] "Validate Track" button — shows violations in summary bar
+- [ ] Training tracks: skip all validation, show geometry only
+
+### 4b — Computed display (web planner + mobile display)
+
+- [ ] VOI lay pit zones:
+  - Per segment: valid zone = segment excluding first and last 50 m
+  - Rendered as dual line or shading on map segment
+  - Computed in domain, rendered in web and later mobile
+- [ ] VOI break corner eligibility:
+  - Corners 1 and 2: always eligible
+  - Corner 3: eligible only if segment 4 length > 300 m
+  - Shown as visual indicator on corner point
+- [ ] AVO/VOI corner markers: visual dot at each segment junction
+
+### 4c — Not applicable to web planner
+
+- Age rule (≥ 12 h AVO / ≥ 18 h VOI) — mobile app only, requires `laidAt` timestamp
+- Lay pit positions (VOI) — recorded in field via mobile app
+- Break corner selection (VOI) — recorded in field via mobile app
+- Road/building distance (≥ 60 m) — see Phase 5 ruler tool
 
 ---
 
 ## Phase 5 – Editor UX & Advanced Features
 
-- [ ] Place domain objects on map:
-  - [ ] Corners, lay pits, break, markers
-  - [ ] Snap / attach to nearest segment (stored as chainage)
-- [ ] Visualize rule violations: color overlays, icons, tooltips
+- [ ] Manual distance ruler tool (click two map points → shows distance)
+  - Primary use: checking distance from roads, buildings
+- [ ] Visualize rule violations on map (color overlays, segment highlighting)
 - [ ] Local persistence (IndexedDB)
 - [ ] Advanced geometry editing:
   - [ ] Move point
@@ -153,8 +142,13 @@
 
 - [ ] Create `mobile/` with React Native + MapLibre RN
 - [ ] Verify `domain/` imports work
-- [ ] Load track from API or local JSON
-- [ ] Show GPS position on map
+- [ ] Display planned route with corner markers
+- [ ] Display VOI lay pit zones and break corner eligibility (from plan)
+- [ ] GPS tracking of actual route walked by track maker
+- [ ] Record actual lay pit positions (tap to mark)
+- [ ] Record break corner selection (tap corner to designate)
+- [ ] Place pre-markers (~30 m before corners, lay pits, and finish — maker selects exact position)
+- [ ] Age rule validation (requires `laidAt` timestamp from field)
 - [ ] Offline tile + track caching
 
 ---

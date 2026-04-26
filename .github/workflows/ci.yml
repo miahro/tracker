@@ -32,14 +32,15 @@ jobs:
         run: npm run build
 
       - name: Test
-        run: npm test --if-present
+        run: npm test -- --coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: "**/coverage/lcov.info"
+          files: '**/coverage/lcov.info'
           fail_ci_if_error: true
+          handle_no_reports_found: true
           verbose: true
 
   e2e:

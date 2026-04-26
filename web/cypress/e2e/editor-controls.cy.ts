@@ -6,7 +6,13 @@
 
 describe('Track editor controls', () => {
   beforeEach(() => {
-    cy.visit('/')
+    // Delete the IndexedDB database before the app initialises on each test,
+    // so persisted track state never bleeds between tests.
+    cy.visit('/', {
+      onBeforeLoad(win) {
+        win.indexedDB.deleteDatabase('trail-tracker')
+      },
+    })
   })
 
   // ---------------------------------------------------------------------------

@@ -29,6 +29,9 @@ interface MapViewProps {
   breakEligibility: BreakEligibility[]
   violatedSegmentIndices: number[]
   initialViewport: PersistedViewport | null
+  selectedPointIndex: number | null
+  onPointClick?: (index: number | null) => void
+  onPointDrag?: (index: number, position: GeoJsonPosition) => void
   rulerPointA: GeoJsonPosition | null
   rulerPointB: GeoJsonPosition | null
   onMapClick?: (position: GeoJsonPosition) => void
@@ -123,7 +126,8 @@ function buildBreakGeoJson(
 function buildGeoJson(
   positions: GeoJsonPosition[],
   roles: PointRole[],
-  violatedSegmentIndices: number[]
+  violatedSegmentIndices: number[],
+  selectedIndex: number | null
 ): GeoJSON.FeatureCollection {
   const violated = new Set(violatedSegmentIndices)
 
@@ -137,7 +141,7 @@ function buildGeoJson(
   const pointFeatures: GeoJSON.Feature[] = positions.map((pos, i) => ({
     type: 'Feature',
     geometry: { type: 'Point', coordinates: pos },
-    properties: { role: roles[i] ?? 'corner' },
+    properties: { role: roles[i] ?? 'corner', pointIndex: i, selected: i === selectedIndex },
   }))
 
   return {
@@ -152,12 +156,13 @@ function addTrackLayers(
   roles: PointRole[],
   layPitZones: LayPitZone[],
   breakEligibility: BreakEligibility[],
-  violatedSegmentIndices: number[]
+  violatedSegmentIndices: number[],
+  selectedIndex: number | null
 ): void {
   // --- Main track ---
   map.addSource(SOURCE_ID, {
     type: 'geojson',
-    data: buildGeoJson(positions, roles, violatedSegmentIndices),
+    data: buildGeoJson(positions, roles, violatedSegmentIndices, selectedIndex),
   })
   map.addLayer({
     id: LAYER_LINE_ID,
@@ -177,17 +182,19 @@ function addTrackLayers(
     source: SOURCE_ID,
     filter: ['==', '$type', 'Point'],
     paint: {
-      'circle-radius': ['match', ['get', 'role'], 'start', 7, 'finish', 7, 5],
-      'circle-color': [
-        'match',
-        ['get', 'role'],
-        'start',
-        '#2563eb',
-        'finish',
-        '#16a34a',
-        '#e63946',
+      'circle-radius': [
+        'case',
+        ['get', 'selected'],
+        9,
+        ['match', ['get', 'role'], 'start', 7, 'finish', 7, 5],
       ],
-      'circle-stroke-width': 2,
+      'circle-color': [
+        'case',
+        ['get', 'selected'],
+        '#f59e0b',
+        ['match', ['get', 'role'], 'start', '#2563eb', 'finish', '#16a34a', '#e63946'],
+      ],
+      'circle-stroke-width': ['case', ['get', 'selected'], 3, 2],
       'circle-stroke-color': '#ffffff',
     },
   })
@@ -254,6 +261,9 @@ export function MapView({
   breakEligibility,
   violatedSegmentIndices,
   initialViewport,
+  selectedPointIndex,
+  onPointClick,
+  onPointDrag,
   rulerPointA,
   rulerPointB,
   onMapClick,
@@ -297,6 +307,23 @@ export function MapView({
     violatedSegmentIndicesRef.current = violatedSegmentIndices
   }, [violatedSegmentIndices])
 
+  const onPointClickRef = useRef(onPointClick)
+  useEffect(() => {
+    onPointClickRef.current = onPointClick
+  }, [onPointClick])
+
+  const onPointDragRef = useRef(onPointDrag)
+  useEffect(() => {
+    onPointDragRef.current = onPointDrag
+  }, [onPointDrag])
+
+  const selectedPointIndexRef = useRef(selectedPointIndex)
+  useEffect(() => {
+    selectedPointIndexRef.current = selectedPointIndex
+  }, [selectedPointIndex])
+
+  // selectedPointIndex drives GeoJSON re-render (in data update effect)
+
   useEffect(() => {
     if (!mapContainerRef.current) return
 
@@ -320,8 +347,53 @@ export function MapView({
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
     mapRef.current = map
 
+    // Click on a point → select it; click elsewhere → deselect and add point
+    map.on('click', LAYER_POINTS_ID, (e) => {
+      e.preventDefault()
+      const feature = e.features?.[0]
+      if (feature) {
+        const idx = feature.properties?.pointIndex as number
+        onPointClickRef.current?.(idx)
+      }
+    })
+
     map.on('click', (e: maplibregl.MapMouseEvent) => {
+      if ((e as maplibregl.MapMouseEvent & { defaultPrevented?: boolean }).defaultPrevented) return
+      onPointClickRef.current?.(null) // deselect
       onMapClickRef.current?.([e.lngLat.lng, e.lngLat.lat])
+    })
+
+    // Drag a point to move it
+    let draggingIndex: number | null = null
+
+    map.on('mousedown', LAYER_POINTS_ID, (e) => {
+      if (!onPointDragRef.current) return
+      e.preventDefault()
+      const feature = e.features?.[0]
+      if (!feature) return
+      draggingIndex = feature.properties?.pointIndex as number
+      map.getCanvas().style.cursor = 'grabbing'
+      map.dragPan.disable()
+    })
+
+    map.on('mousemove', (e) => {
+      if (draggingIndex === null || !onPointDragRef.current) return
+      onPointDragRef.current(draggingIndex, [e.lngLat.lng, e.lngLat.lat])
+    })
+
+    const stopDrag = () => {
+      if (draggingIndex === null) return
+      draggingIndex = null
+      map.getCanvas().style.cursor = ''
+      map.dragPan.enable()
+    }
+
+    map.on('mouseup', stopDrag)
+    map.on('mouseleave', LAYER_POINTS_ID, () => {
+      if (draggingIndex === null) map.getCanvas().style.cursor = ''
+    })
+    map.on('mouseenter', LAYER_POINTS_ID, () => {
+      if (draggingIndex === null && onPointDragRef.current) map.getCanvas().style.cursor = 'grab'
     })
 
     function addLayersAndData() {
@@ -331,7 +403,8 @@ export function MapView({
         pointRolesRef.current,
         layPitZonesRef.current,
         breakEligibilityRef.current,
-        violatedSegmentIndicesRef.current
+        violatedSegmentIndicesRef.current,
+        selectedPointIndexRef.current
       )
     }
 
@@ -402,7 +475,10 @@ export function MapView({
     function updateData() {
       const m = map!
       const source = m.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined
-      if (source) source.setData(buildGeoJson(trackPositions, pointRoles, violatedSegmentIndices))
+      if (source)
+        source.setData(
+          buildGeoJson(trackPositions, pointRoles, violatedSegmentIndices, selectedPointIndex)
+        )
       const layPitSource = m.getSource(SOURCE_LAY_PIT) as maplibregl.GeoJSONSource | undefined
       if (layPitSource) layPitSource.setData(buildLayPitGeoJson(layPitZones))
       const breakSource = m.getSource(SOURCE_BREAK) as maplibregl.GeoJSONSource | undefined
@@ -422,6 +498,7 @@ export function MapView({
     layPitZones,
     breakEligibility,
     violatedSegmentIndices,
+    selectedPointIndex,
     rulerPointA,
     rulerPointB,
   ])

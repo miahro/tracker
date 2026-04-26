@@ -213,6 +213,100 @@ describe('RESET', () => {
   })
 })
 
+describe('MOVE_POINT', () => {
+  const NEW_POS: GeoJsonPosition = [25.2, 60.4]
+
+  it('moves a point at a given index', () => {
+    const state = draftTrackReducer(drawing(P1, P2, P3), {
+      type: 'MOVE_POINT',
+      index: 1,
+      position: NEW_POS,
+    })
+    expect(state.points[1]).toEqual(NEW_POS)
+    expect(state.points[0]).toEqual(P1)
+    expect(state.points[2]).toEqual(P3)
+  })
+
+  it('moves the first point', () => {
+    const state = draftTrackReducer(drawing(P1, P2), {
+      type: 'MOVE_POINT',
+      index: 0,
+      position: NEW_POS,
+    })
+    expect(state.points[0]).toEqual(NEW_POS)
+  })
+
+  it('moves the last point', () => {
+    const state = draftTrackReducer(drawing(P1, P2, P3), {
+      type: 'MOVE_POINT',
+      index: 2,
+      position: NEW_POS,
+    })
+    expect(state.points[2]).toEqual(NEW_POS)
+  })
+
+  it('is a no-op when not in drawing mode', () => {
+    const finished = { ...drawing(P1, P2), mode: 'finished' as const }
+    const state = draftTrackReducer(finished, { type: 'MOVE_POINT', index: 0, position: NEW_POS })
+    expect(state.points[0]).toEqual(P1)
+  })
+
+  it('is a no-op for out-of-range index', () => {
+    const state = draftTrackReducer(drawing(P1, P2), {
+      type: 'MOVE_POINT',
+      index: 5,
+      position: NEW_POS,
+    })
+    expect(state.points).toHaveLength(2)
+  })
+
+  it('preserves point count', () => {
+    const state = draftTrackReducer(drawing(P1, P2, P3), {
+      type: 'MOVE_POINT',
+      index: 1,
+      position: NEW_POS,
+    })
+    expect(state.points).toHaveLength(3)
+  })
+})
+
+describe('DELETE_POINT', () => {
+  it('removes a point at a given index', () => {
+    const state = draftTrackReducer(drawing(P1, P2, P3), { type: 'DELETE_POINT', index: 1 })
+    expect(state.points).toHaveLength(2)
+    expect(state.points[0]).toEqual(P1)
+    expect(state.points[1]).toEqual(P3)
+  })
+
+  it('removes the first point', () => {
+    const state = draftTrackReducer(drawing(P1, P2, P3), { type: 'DELETE_POINT', index: 0 })
+    expect(state.points[0]).toEqual(P2)
+    expect(state.points).toHaveLength(2)
+  })
+
+  it('removes the last point', () => {
+    const state = draftTrackReducer(drawing(P1, P2, P3), { type: 'DELETE_POINT', index: 2 })
+    expect(state.points[state.points.length - 1]).toEqual(P2)
+    expect(state.points).toHaveLength(2)
+  })
+
+  it('is a no-op when only 1 point remains', () => {
+    const state = draftTrackReducer(drawing(P1), { type: 'DELETE_POINT', index: 0 })
+    expect(state.points).toHaveLength(1)
+  })
+
+  it('is a no-op when not in drawing mode', () => {
+    const finished = { ...drawing(P1, P2, P3), mode: 'finished' as const }
+    const state = draftTrackReducer(finished, { type: 'DELETE_POINT', index: 1 })
+    expect(state.points).toHaveLength(3)
+  })
+
+  it('is a no-op for out-of-range index', () => {
+    const state = draftTrackReducer(drawing(P1, P2), { type: 'DELETE_POINT', index: 5 })
+    expect(state.points).toHaveLength(2)
+  })
+})
+
 // ---------------------------------------------------------------------------
 // deriveDraftTrack
 // ---------------------------------------------------------------------------

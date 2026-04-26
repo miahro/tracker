@@ -40,9 +40,19 @@ function AppInner({
   setBaseMapId: (id: BaseMapId) => void
   init: LoadedInit
 }) {
-  const { state, derived, startDrawing, addPoint, undo, finish, reset } = useDraftTrack(
-    init.trackState
-  )
+  const {
+    state,
+    derived,
+    selectedPointIndex,
+    startDrawing,
+    addPoint,
+    movePoint,
+    deletePoint,
+    selectPoint,
+    undo,
+    finish,
+    reset,
+  } = useDraftTrack(init.trackState)
   const [violations, setViolations] = useState<RuleViolation[] | null>(null)
   const { ruler, startRuler, handleRulerClick, resetRuler } = useRuler()
 
@@ -131,6 +141,15 @@ function AppInner({
           {derived.canUndo && (
             <button className="pillButton" data-testid="btn-undo" onClick={undo}>
               Undo
+            </button>
+          )}
+          {state.mode === 'drawing' && selectedPointIndex !== null && (
+            <button
+              className="pillButton pillButtonDanger"
+              data-testid="btn-delete-point"
+              onClick={() => deletePoint(selectedPointIndex)}
+            >
+              Delete point {selectedPointIndex + 1}
             </button>
           )}
           {derived.canFinish && (
@@ -251,12 +270,17 @@ function AppInner({
           breakEligibility={derived.breakEligibility}
           violatedSegmentIndices={violatedSegmentIndices}
           initialViewport={init.viewport}
+          selectedPointIndex={selectedPointIndex}
+          onPointClick={state.mode === 'drawing' ? selectPoint : undefined}
+          onPointDrag={state.mode === 'drawing' ? movePoint : undefined}
           rulerPointA={ruler.pointA}
           rulerPointB={ruler.pointB}
           onMapClick={
             ruler.mode !== 'idle'
               ? handleRulerClick
-              : state.mode === 'drawing' && !derived.isPointLimitReached
+              : state.mode === 'drawing' &&
+                  !derived.isPointLimitReached &&
+                  selectedPointIndex === null
                 ? addPoint
                 : undefined
           }

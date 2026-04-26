@@ -67,6 +67,8 @@ export type DraftTrackAction =
   | { type: 'FINISH' }
   | { type: 'RESET' }
   | { type: 'HYDRATE'; state: DraftTrackState }
+  | { type: 'MOVE_POINT'; index: number; position: GeoJsonPosition }
+  | { type: 'DELETE_POINT'; index: number }
 
 // ---------------------------------------------------------------------------
 // Reducer
@@ -104,6 +106,24 @@ export function draftTrackReducer(
 
     case 'HYDRATE':
       return action.state
+
+    case 'MOVE_POINT': {
+      // Only allowed while drawing; index must be in range
+      if (state.mode !== 'drawing') return state
+      if (action.index < 0 || action.index >= state.points.length) return state
+      const moved = [...state.points]
+      moved[action.index] = action.position
+      return { ...state, points: moved }
+    }
+
+    case 'DELETE_POINT': {
+      // Only allowed while drawing; must keep at least 1 point
+      if (state.mode !== 'drawing') return state
+      if (action.index < 0 || action.index >= state.points.length) return state
+      if (state.points.length <= 1) return state
+      const remaining = state.points.filter((_, i) => i !== action.index)
+      return { ...state, points: remaining }
+    }
 
     default:
       return state

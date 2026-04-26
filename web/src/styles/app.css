@@ -140,3 +140,13 @@
   color: #92400e;
   font-weight: 500;
 }
+
+.pillButtonDanger {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.pillButtonDanger:hover {
+  background: #fee2e2;
+}

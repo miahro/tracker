@@ -1,9 +1,6 @@
 // web/src/features/track-editor/useDraftTrack.ts
-//
-// React hook for the draft track editor.
-// Thin wrapper around draftTrackReducer — all logic lives in the reducer.
 
-import { useReducer } from 'react'
+import { useReducer, useEffect, useRef } from 'react'
 import type { TrackType } from '@trail-tracker/domain'
 import {
   draftTrackReducer,
@@ -13,6 +10,7 @@ import {
   type DraftTrackDerived,
 } from './draftTrackReducer'
 import type { GeoJsonPosition } from '../../adapters/geojson'
+import { saveTrackState } from '../../persistence'
 
 export interface UseDraftTrackResult {
   state: DraftTrackState
@@ -24,9 +22,21 @@ export interface UseDraftTrackResult {
   reset: () => void
 }
 
-export function useDraftTrack(): UseDraftTrackResult {
-  const [state, dispatch] = useReducer(draftTrackReducer, INITIAL_STATE)
+export function useDraftTrack(initialState: DraftTrackState = INITIAL_STATE): UseDraftTrackResult {
+  const [state, dispatch] = useReducer(draftTrackReducer, initialState)
   const derived = deriveDraftTrack(state)
+
+  // Track whether we've completed the first render with the real initial state.
+  // Don't save until after that — avoids overwriting persisted data with INITIAL_STATE.
+  const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    void saveTrackState(state)
+  }, [state])
 
   return {
     state,

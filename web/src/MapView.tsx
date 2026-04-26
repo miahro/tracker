@@ -6,6 +6,7 @@ import { getBaseMapConfig, type BaseMapId } from './basemaps'
 import { buildBaseMapStyle } from './map/buildBaseMapStyle'
 import type { GeoJsonPosition } from './adapters/geojson'
 import type { LayPitZone, BreakEligibility } from '@trail-tracker/domain'
+import { saveViewport, type PersistedViewport } from './persistence'
 
 interface MapAntFeatureName {
   id: string
@@ -27,6 +28,7 @@ interface MapViewProps {
   layPitZones: LayPitZone[]
   breakEligibility: BreakEligibility[]
   violatedSegmentIndices: number[]
+  initialViewport: PersistedViewport | null
   rulerPointA: GeoJsonPosition | null
   rulerPointB: GeoJsonPosition | null
   onMapClick?: (position: GeoJsonPosition) => void
@@ -251,6 +253,7 @@ export function MapView({
   layPitZones,
   breakEligibility,
   violatedSegmentIndices,
+  initialViewport,
   rulerPointA,
   rulerPointB,
   onMapClick,
@@ -258,6 +261,11 @@ export function MapView({
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const labelMarkersRef = useRef<maplibregl.Marker[]>([])
+
+  // Seeded from persisted data (loaded before render in App) — no async needed here
+  const viewportRef = useRef<{ center: [number, number]; zoom: number }>(
+    initialViewport ?? { center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM }
+  )
 
   const onMapClickRef = useRef(onMapClick)
   useEffect(() => {
@@ -301,8 +309,8 @@ export function MapView({
       map = new maplibregl.Map({
         container: mapContainerRef.current,
         style,
-        center: DEFAULT_CENTER,
-        zoom: DEFAULT_ZOOM,
+        center: viewportRef.current.center,
+        zoom: viewportRef.current.zoom,
       })
     } catch (err) {
       console.warn('MapLibre: failed to initialize map, WebGL may be unavailable.', err)
@@ -369,9 +377,17 @@ export function MapView({
     })
     map.on('moveend', () => {
       if (baseMap.id === 'mapant') void updateFeatureNames()
+      // Capture viewport so next map instance (basemap toggle) starts here
+      const c = map.getCenter()
+      const viewport = { center: [c.lng, c.lat] as [number, number], zoom: map.getZoom() }
+      viewportRef.current = viewport
+      void saveViewport(viewport)
     })
 
     return () => {
+      // Capture final viewport before destroying the map
+      const c = map.getCenter()
+      viewportRef.current = { center: [c.lng, c.lat] as [number, number], zoom: map.getZoom() }
       for (const marker of labelMarkersRef.current) marker.remove()
       labelMarkersRef.current = []
       map.remove()

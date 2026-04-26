@@ -66,6 +66,7 @@ export type DraftTrackAction =
   | { type: 'UNDO' }
   | { type: 'FINISH' }
   | { type: 'RESET' }
+  | { type: 'HYDRATE'; state: DraftTrackState }
 
 // ---------------------------------------------------------------------------
 // Reducer
@@ -100,6 +101,9 @@ export function draftTrackReducer(
 
     case 'RESET':
       return INITIAL_STATE
+
+    case 'HYDRATE':
+      return action.state
 
     default:
       return state

@@ -1,5 +1,5 @@
 // web/src/App.tsx
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MapView } from './MapView'
 import type { BaseMapId } from './basemaps'
 import { BaseMapToggle } from './components/BaseMapToggle'
@@ -7,10 +7,42 @@ import { useDraftTrack } from './features/track-editor/useDraftTrack'
 import { useRuler } from './features/ruler/useRuler'
 import { segmentsToGeoJson } from './adapters/geojson'
 import { validateTrack, type RuleViolation } from '@trail-tracker/domain'
+import { loadTrackState, loadViewport, type PersistedViewport } from './persistence'
+import { INITIAL_STATE, type DraftTrackState } from './features/track-editor/draftTrackReducer'
+
+interface LoadedInit {
+  trackState: DraftTrackState
+  viewport: PersistedViewport | null
+}
 
 export default function App() {
   const [baseMapId, setBaseMapId] = useState<BaseMapId>('nls-vector')
-  const { state, derived, startDrawing, addPoint, undo, finish, reset } = useDraftTrack()
+  const [init, setInit] = useState<LoadedInit | null>(null)
+
+  // Load persisted data before rendering the editor — prevents save-before-load race
+  useEffect(() => {
+    Promise.all([loadTrackState(), loadViewport()]).then(([trackState, viewport]) => {
+      setInit({ trackState: trackState ?? INITIAL_STATE, viewport })
+    })
+  }, [])
+
+  if (!init) return null // wait for persistence load before rendering
+
+  return <AppInner baseMapId={baseMapId} setBaseMapId={setBaseMapId} init={init} />
+}
+
+function AppInner({
+  baseMapId,
+  setBaseMapId,
+  init,
+}: {
+  baseMapId: BaseMapId
+  setBaseMapId: (id: BaseMapId) => void
+  init: LoadedInit
+}) {
+  const { state, derived, startDrawing, addPoint, undo, finish, reset } = useDraftTrack(
+    init.trackState
+  )
   const [violations, setViolations] = useState<RuleViolation[] | null>(null)
   const { ruler, startRuler, handleRulerClick, resetRuler } = useRuler()
 
@@ -218,6 +250,7 @@ export default function App() {
           layPitZones={derived.layPitZones}
           breakEligibility={derived.breakEligibility}
           violatedSegmentIndices={violatedSegmentIndices}
+          initialViewport={init.viewport}
           rulerPointA={ruler.pointA}
           rulerPointB={ruler.pointB}
           onMapClick={

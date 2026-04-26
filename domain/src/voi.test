@@ -1,0 +1,226 @@
+// domain/src/voi.test.ts
+
+import { describe, it, expect } from 'vitest'
+import {
+  interpolateCoordinate,
+  getLayPitZone,
+  getVoiLayPitZones,
+  getVoiBreakEligibility,
+  distanceBetweenCoordinatesMeters,
+} from './index'
+import type { Track, TrackSegment, Coordinate } from './index'
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const BASE: Coordinate = { lat: 60.3, lon: 25.1 }
+
+function offsetCoord(base: Coordinate, northM: number, eastM: number): Coordinate {
+  return {
+    lat: base.lat + northM / 111320,
+    lon: base.lon + eastM / (111320 * Math.cos((base.lat * Math.PI) / 180)),
+  }
+}
+
+function makeSeg(id: string, start: Coordinate, end: Coordinate, index: number): TrackSegment {
+  return { id, start, end, sequenceIndex: index }
+}
+
+function makeVoiTrack(segLengths: [number, number, number, number]): Track {
+  const points: Coordinate[] = [BASE]
+  for (const len of segLengths) {
+    points.push(offsetCoord(points[points.length - 1], len, 0))
+  }
+  return {
+    id: 'voi-test',
+    name: 'VOI test',
+    type: 'VOI',
+    segments: segLengths.map((_, i) => makeSeg(`s${i}`, points[i], points[i + 1], i)),
+    objects: [],
+  }
+}
+
+// ---------------------------------------------------------------------------
+// interpolateCoordinate
+// ---------------------------------------------------------------------------
+
+describe('interpolateCoordinate', () => {
+  const A: Coordinate = { lat: 60.3, lon: 25.1 }
+  const B: Coordinate = { lat: 60.31, lon: 25.1 } // ~1.1 km north
+
+  it('fraction=0 returns start', () => {
+    const r = interpolateCoordinate(A, B, 0)
+    expect(r.lat).toBeCloseTo(A.lat, 6)
+    expect(r.lon).toBeCloseTo(A.lon, 6)
+  })
+
+  it('fraction=1 returns end', () => {
+    const r = interpolateCoordinate(A, B, 1)
+    expect(r.lat).toBeCloseTo(B.lat, 6)
+    expect(r.lon).toBeCloseTo(B.lon, 6)
+  })
+
+  it('fraction=0.5 returns midpoint approximately equidistant from both ends', () => {
+    const mid = interpolateCoordinate(A, B, 0.5)
+    const dA = distanceBetweenCoordinatesMeters(A, mid)
+    const dB = distanceBetweenCoordinatesMeters(B, mid)
+    expect(Math.abs(dA - dB)).toBeLessThan(1) // within 1 m
+  })
+
+  it('midpoint is roughly half the total segment length from start', () => {
+    const total = distanceBetweenCoordinatesMeters(A, B)
+    const mid = interpolateCoordinate(A, B, 0.5)
+    const half = distanceBetweenCoordinatesMeters(A, mid)
+    expect(Math.abs(half - total / 2)).toBeLessThan(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// getLayPitZone
+// ---------------------------------------------------------------------------
+
+describe('getLayPitZone', () => {
+  it('returns null for a segment ≤ 100 m', () => {
+    const seg = makeSeg('s0', BASE, offsetCoord(BASE, 80, 0), 0)
+    expect(getLayPitZone(seg)).toBeNull()
+  })
+
+  it('returns null for a segment exactly 100 m', () => {
+    const seg = makeSeg('s0', BASE, offsetCoord(BASE, 100, 0), 0)
+    expect(getLayPitZone(seg)).toBeNull()
+  })
+
+  it('returns a zone for a segment > 100 m', () => {
+    const seg = makeSeg('s0', BASE, offsetCoord(BASE, 400, 0), 0)
+    expect(getLayPitZone(seg)).not.toBeNull()
+  })
+
+  it('zone start is ~50 m from segment start', () => {
+    const seg = makeSeg('s0', BASE, offsetCoord(BASE, 400, 0), 0)
+    const zone = getLayPitZone(seg)!
+    const d = distanceBetweenCoordinatesMeters(BASE, zone.zoneStart)
+    expect(Math.abs(d - 50)).toBeLessThan(1)
+  })
+
+  it('zone end is ~50 m from segment end', () => {
+    const end = offsetCoord(BASE, 400, 0)
+    const seg = makeSeg('s0', BASE, end, 0)
+    const zone = getLayPitZone(seg)!
+    const d = distanceBetweenCoordinatesMeters(end, zone.zoneEnd)
+    expect(Math.abs(d - 50)).toBeLessThan(1)
+  })
+
+  it('segmentIndex matches segment sequenceIndex', () => {
+    const seg = makeSeg('s2', BASE, offsetCoord(BASE, 400, 0), 2)
+    expect(getLayPitZone(seg)!.segmentIndex).toBe(2)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// getVoiLayPitZones
+// ---------------------------------------------------------------------------
+
+describe('getVoiLayPitZones', () => {
+  it('returns 4 zones for a valid VOI track', () => {
+    const track = makeVoiTrack([300, 350, 320, 330])
+    expect(getVoiLayPitZones(track)).toHaveLength(4)
+  })
+
+  it('returns empty array for AVO track', () => {
+    const avoTrack: Track = {
+      id: 'a',
+      name: 'AVO',
+      type: 'AVO',
+      segments: [makeSeg('s0', BASE, offsetCoord(BASE, 350, 0), 0)],
+      objects: [],
+    }
+    expect(getVoiLayPitZones(avoTrack)).toHaveLength(0)
+  })
+
+  it('returns empty array for TRAINING track', () => {
+    const trainingTrack: Track = {
+      id: 't',
+      name: 'TRAINING',
+      type: 'TRAINING',
+      segments: [makeSeg('s0', BASE, offsetCoord(BASE, 350, 0), 0)],
+      objects: [],
+    }
+    expect(getVoiLayPitZones(trainingTrack)).toHaveLength(0)
+  })
+
+  it('filters out segments too short to have a valid zone', () => {
+    // seg 0 = 80 m (too short), rest valid
+    const track = makeVoiTrack([80, 350, 320, 330])
+    const zones = getVoiLayPitZones(track)
+    expect(zones).toHaveLength(3)
+    expect(zones.some((z) => z.segmentIndex === 0)).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// getVoiBreakEligibility
+// ---------------------------------------------------------------------------
+
+describe('getVoiBreakEligibility', () => {
+  it('returns 3 entries for a VOI track', () => {
+    const track = makeVoiTrack([300, 350, 320, 330])
+    expect(getVoiBreakEligibility(track)).toHaveLength(3)
+  })
+
+  it('corner 0 is always eligible', () => {
+    const track = makeVoiTrack([300, 350, 320, 100])
+    const eligibility = getVoiBreakEligibility(track)
+    expect(eligibility[0].eligible).toBe(true)
+  })
+
+  it('corner 1 is always eligible', () => {
+    const track = makeVoiTrack([300, 350, 320, 100])
+    const eligibility = getVoiBreakEligibility(track)
+    expect(eligibility[1].eligible).toBe(true)
+  })
+
+  it('corner 2 is eligible when segment 4 > 300 m', () => {
+    const track = makeVoiTrack([300, 350, 320, 350])
+    const eligibility = getVoiBreakEligibility(track)
+    expect(eligibility[2].eligible).toBe(true)
+    expect(eligibility[2].reason).toBeUndefined()
+  })
+
+  it('corner 2 is NOT eligible when segment 4 ≤ 300 m', () => {
+    const track = makeVoiTrack([300, 350, 320, 250])
+    const eligibility = getVoiBreakEligibility(track)
+    expect(eligibility[2].eligible).toBe(false)
+    expect(eligibility[2].reason).toMatch(/300/)
+  })
+
+  it('corner 2 is NOT eligible when segment 4 is exactly 300 m', () => {
+    const track = makeVoiTrack([300, 350, 320, 300])
+    const eligibility = getVoiBreakEligibility(track)
+    expect(eligibility[2].eligible).toBe(false)
+  })
+
+  it('returns empty array for AVO track', () => {
+    const avoTrack: Track = {
+      id: 'a', name: 'AVO', type: 'AVO',
+      segments: [makeSeg('s0', BASE, offsetCoord(BASE, 350, 0), 0)],
+      objects: [],
+    }
+    expect(getVoiBreakEligibility(avoTrack)).toHaveLength(0)
+  })
+
+  it('returns empty array for TRAINING track', () => {
+    const trainingTrack: Track = {
+      id: 't', name: 'TRAINING', type: 'TRAINING',
+      segments: [makeSeg('s0', BASE, offsetCoord(BASE, 350, 0), 0)],
+      objects: [],
+    }
+    expect(getVoiBreakEligibility(trainingTrack)).toHaveLength(0)
+  })
+
+  it('includes cornerIndex values 0, 1, 2', () => {
+    const track = makeVoiTrack([300, 350, 320, 330])
+    const indices = getVoiBreakEligibility(track).map((e) => e.cornerIndex)
+    expect(indices).toEqual([0, 1, 2])
+  })
+})

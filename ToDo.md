@@ -96,15 +96,15 @@
 
 ### 4b — Computed display (web planner + mobile display)
 
-- [ ] VOI lay pit zones:
+- [x] VOI lay pit zones:
   - Per segment: valid zone = segment excluding first and last 50 m
   - Rendered as dual line or shading on map segment
   - Computed in domain, rendered in web and later mobile
-- [ ] VOI break corner eligibility:
+- [x] VOI break corner eligibility:
   - Corners 1 and 2: always eligible
   - Corner 3: eligible only if segment 4 length > 300 m
   - Shown as visual indicator on corner point
-- [ ] AVO/VOI corner markers: visual dot at each segment junction
+- [x] AVO/VOI corner markers: visual dot at each segment junction
 
 ### 4c — Not applicable to web planner
 

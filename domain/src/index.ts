@@ -236,3 +236,148 @@ export function validateTrack(track: Track): RuleViolation[] {
 
   return violations
 }
+
+// ---------------------------------------------------------------------------
+// Geometry helpers — interpolation
+// ---------------------------------------------------------------------------
+
+/**
+ * Interpolate a point along a great-circle path between two coordinates.
+ * fraction=0 returns start, fraction=1 returns end.
+ *
+ * Uses the spherical linear interpolation (slerp) formula on a unit sphere.
+ * Accurate enough for MEJÄ segment lengths (< 2 km).
+ */
+export function interpolateCoordinate(
+  start: Coordinate,
+  end: Coordinate,
+  fraction: number
+): Coordinate {
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const toDeg = (r: number) => (r * 180) / Math.PI
+
+  const lat1 = toRad(start.lat)
+  const lon1 = toRad(start.lon)
+  const lat2 = toRad(end.lat)
+  const lon2 = toRad(end.lon)
+
+  const d =
+    2 *
+    Math.asin(
+      Math.sqrt(
+        Math.sin((lat2 - lat1) / 2) ** 2 +
+          Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2
+      )
+    )
+
+  if (d === 0) return start
+
+  const a = Math.sin((1 - fraction) * d) / Math.sin(d)
+  const b = Math.sin(fraction * d) / Math.sin(d)
+
+  const x = a * Math.cos(lat1) * Math.cos(lon1) + b * Math.cos(lat2) * Math.cos(lon2)
+  const y = a * Math.cos(lat1) * Math.sin(lon1) + b * Math.cos(lat2) * Math.sin(lon2)
+  const z = a * Math.sin(lat1) + b * Math.sin(lat2)
+
+  return {
+    lat: toDeg(Math.atan2(z, Math.sqrt(x * x + y * y))),
+    lon: toDeg(Math.atan2(y, x)),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// VOI — Lay pit zones
+// ---------------------------------------------------------------------------
+
+/**
+ * The valid zone for a VOI lay pit on a single segment.
+ *
+ * Rules: the lay pit must be ≥ 50 m from both ends of the segment
+ * (i.e. ≥ 50 m from a corner or the finish).
+ *
+ * Returns the start and end coordinates of the valid zone along the segment,
+ * or null if the segment is too short to have any valid zone (< 100 m total
+ * exclusion zone, i.e. segment ≤ 100 m — invalid anyway by the 150 m rule,
+ * but we handle it gracefully).
+ */
+export interface LayPitZone {
+  /** Index of the segment this zone belongs to (0-based, = TrackSegment.sequenceIndex) */
+  segmentIndex: number
+  /** Start of the valid zone (50 m from segment start) */
+  zoneStart: Coordinate
+  /** End of the valid zone (50 m from segment end) */
+  zoneEnd: Coordinate
+}
+
+const LAY_PIT_EXCLUSION_M = 50
+
+export function getLayPitZone(segment: TrackSegment): LayPitZone | null {
+  const length = getSegmentLengthMeters(segment)
+  const exclusion = LAY_PIT_EXCLUSION_M * 2
+
+  if (length <= exclusion) return null
+
+  const startFraction = LAY_PIT_EXCLUSION_M / length
+  const endFraction = (length - LAY_PIT_EXCLUSION_M) / length
+
+  return {
+    segmentIndex: segment.sequenceIndex,
+    zoneStart: interpolateCoordinate(segment.start, segment.end, startFraction),
+    zoneEnd: interpolateCoordinate(segment.start, segment.end, endFraction),
+  }
+}
+
+/**
+ * Compute lay pit zones for all segments of a VOI track.
+ * Returns one zone per segment (null entries filtered out).
+ * Returns empty array for non-VOI tracks.
+ */
+export function getVoiLayPitZones(track: Track): LayPitZone[] {
+  if (track.type !== 'VOI') return []
+  return track.segments.map((s) => getLayPitZone(s)).filter((z): z is LayPitZone => z !== null)
+}
+
+// ---------------------------------------------------------------------------
+// VOI — Break corner eligibility
+// ---------------------------------------------------------------------------
+
+/**
+ * Eligibility of each corner for the VOI break (katko).
+ *
+ * Rules:
+ *   Corner 1 (between seg 0 and seg 1): always eligible
+ *   Corner 2 (between seg 1 and seg 2): always eligible
+ *   Corner 3 (between seg 2 and seg 3): eligible only if segment 4 (seg index 3) > 300 m
+ *
+ * cornerIndex is 0-based (corner 0 = junction of seg 0 and seg 1).
+ */
+export interface BreakEligibility {
+  /** 0-based corner index */
+  cornerIndex: number
+  eligible: boolean
+  /** Human-readable reason when not eligible */
+  reason?: string
+}
+
+const BREAK_MIN_REMAINING_M = 300
+
+export function getVoiBreakEligibility(track: Track): BreakEligibility[] {
+  if (track.type !== 'VOI') return []
+
+  const sorted = [...track.segments].sort((a, b) => a.sequenceIndex - b.sequenceIndex)
+  // VOI has 4 segments → 3 corners (indices 0, 1, 2)
+  const lastSegmentLength = sorted[3] ? getSegmentLengthMeters(sorted[3]) : 0
+
+  return [
+    { cornerIndex: 0, eligible: true },
+    { cornerIndex: 1, eligible: true },
+    {
+      cornerIndex: 2,
+      eligible: lastSegmentLength > BREAK_MIN_REMAINING_M,
+      reason:
+        lastSegmentLength > BREAK_MIN_REMAINING_M
+          ? undefined
+          : `Segment 4 is ${Math.round(lastSegmentLength)} m — must be > ${BREAK_MIN_REMAINING_M} m for break at corner 3`,
+    },
+  ]
+}

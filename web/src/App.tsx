@@ -172,6 +172,8 @@ export default function App() {
           baseMapId={baseMapId}
           trackPositions={trackPositions}
           pointRoles={pointRoles}
+          layPitZones={derived.layPitZones}
+          breakEligibility={derived.breakEligibility}
           onMapClick={
             state.mode === 'drawing' && !derived.isPointLimitReached ? addPoint : undefined
           }

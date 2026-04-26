@@ -9,6 +9,10 @@ import {
   getSegmentBearingDegrees,
   getSegmentLengthMeters,
   distanceBetweenCoordinatesMeters,
+  getVoiLayPitZones,
+  getVoiBreakEligibility,
+  type LayPitZone,
+  type BreakEligibility,
 } from '@trail-tracker/domain'
 import {
   segmentsFromGeoJson,
@@ -149,6 +153,16 @@ export interface DraftTrackDerived {
    */
   startFinishTooClose: boolean
   /**
+   * VOI only: valid lay pit zones per segment (50 m excluded at each end).
+   * Empty for AVO and TRAINING.
+   */
+  layPitZones: LayPitZone[]
+  /**
+   * VOI only: break corner eligibility for each corner (0-based index).
+   * Empty for AVO and TRAINING.
+   */
+  breakEligibility: BreakEligibility[]
+  /**
    * Fully assembled Track with START + FINISH objects.
    * Only present when mode === 'finished'.
    */
@@ -237,6 +251,25 @@ export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
     state.mode === 'drawing' &&
     (state.trackType === 'TRAINING' ? state.points.length >= 2 : state.points.length >= maxPoints)
 
+  // Build a temporary Track for VOI computations during drawing (before finish)
+  // Use finishedTrack when available, otherwise build from current segments
+  const trackForVoi: Track | null =
+    finishedTrack ??
+    (state.trackType === 'VOI' && segments.length > 0
+      ? {
+          id: 'draft',
+          name: 'draft',
+          type: 'VOI',
+          segments,
+          objects: [],
+        }
+      : null)
+
+  const layPitZones: LayPitZone[] = trackForVoi ? getVoiLayPitZones(trackForVoi) : []
+  const breakEligibility: BreakEligibility[] = trackForVoi
+    ? getVoiBreakEligibility(trackForVoi)
+    : []
+
   return {
     segments,
     segmentInfos,
@@ -246,6 +279,8 @@ export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
     isPointLimitReached,
     hasShortSegment,
     startFinishTooClose,
+    layPitZones,
+    breakEligibility,
     finishedTrack,
   }
 }

@@ -135,6 +135,10 @@
 - [ ] DB schema: users, tracks, track versions
 - [ ] REST endpoints: `POST /tracks`, `GET /tracks`, `GET /tracks/:id`
 - [ ] Connect web app to backend (React Query or similar)
+- [ ] MapAnt tile proxy (`GET /proxy/mapant-tiles/:z/:x/:y`)
+  - MapAnt WMTS blocks requests not originating from their allowlist
+  - Proxy forwards tile requests server-side, bypassing browser referrer check
+  - Web app points MapAnt tile URL at local proxy instead of wmts.mapant.fi directly
 
 ---
 

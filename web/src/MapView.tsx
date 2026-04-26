@@ -35,12 +35,20 @@ export function MapView({ baseMapId }: MapViewProps) {
     const baseMap = getBaseMapConfig(baseMapId, nlsApiKey)
     const style = buildBaseMapStyle(baseMap)
 
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style,
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-    })
+    let map: maplibregl.Map
+    try {
+      map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style,
+        center: DEFAULT_CENTER,
+        zoom: DEFAULT_ZOOM,
+      })
+    } catch (err) {
+      // WebGL is unavailable (e.g. Cypress interactive mode, headless CI without GPU).
+      // Log and bail — the rest of the UI (buttons, state) remains fully functional.
+      console.warn('MapLibre: failed to initialize map, WebGL may be unavailable.', err)
+      return
+    }
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
     mapRef.current = map

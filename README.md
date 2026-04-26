@@ -28,12 +28,14 @@ Official MEJÄ rules and organizing instructions are used as the primary domain 
 ## Data Sources
 
 ### MapAnt Finland
+
 - Automatically generated orienteering map of Finland
 - Contains data © National Land Survey of Finland (NLS)
 - License: **CC BY 4.0**
 - https://mapant.fi
 
 ### National Land Survey of Finland (NLS)
+
 - Topographic database vector tiles (Taustakartta / Backgroundmap)
 - License: **CC BY 4.0**
 - https://www.maanmittauslaitos.fi/en/maps-and-spatial-data/opendata
@@ -45,21 +47,25 @@ Proper attribution is shown inside the application UI on all map layers.
 ## Tech Stack (planned)
 
 **Frontend (web)**
+
 - React + TypeScript
 - Vite
 - MapLibre GL JS
 
 **Mobile (later phase)**
+
 - React Native + TypeScript
 - React Native MapLibre
 - Offline maps + GPS
 
 **Backend (later phase)**
+
 - Node.js + Express
 - Prisma ORM
 - PostgreSQL / SQLite
 
 **Shared domain**
+
 - Pure TypeScript (`domain/`)
 - Geometry, MEJÄ rules, validation
 
@@ -77,89 +83,85 @@ Proper attribution is shown inside the application UI on all map layers.
 
 ---
 
-## Development
+## Local Development
 
-### Linting
+### Prerequisites
 
-This repository uses **ESLint** for linting, with formatting handled by **Prettier**.
+- **Node.js** ≥ 20 (recommend installing via [nvm](https://github.com/nvm-sh/nvm))
+- **npm** ≥ 10 (comes with Node 20)
 
-Run linting from the repository root:
+### First-time setup
 
 ```bash
-npm run lint
+git clone https://github.com/miahro/tracker.git
+cd tracker
+npm install        # installs all workspace packages (domain + web)
 ```
 
-Auto-fix where possible:
+### Run the web app
 
 ```bash
-npm run lint -- --fix
+npm run dev -w @trail-tracker/web
+```
+
+Open http://localhost:5173 in your browser. The map loads NLS Finland tiles by default.
+
+---
+
+### Linting & formatting
+
+This repository uses **ESLint** with **Prettier**.
+
+```bash
+npm run lint          # check for issues
+npm run lint -- --fix # auto-fix where possible
+npm run format        # apply Prettier formatting
 ```
 
 ---
 
 ### Testing
 
-Testing is split into **unit tests** (domain) and **end-to-end (E2E) tests** (web).
+#### Domain unit tests (Vitest)
 
-#### Unit Tests
-
-Unit tests are implemented using **Vitest** and currently focus on the `domain/` package.
-
-Run from repo root:
+All domain business logic has unit tests. Run from the repo root:
 
 ```bash
-npm test
+npm test                     # run once
+npx vitest --reporter=verbose  # watch mode with output
 ```
 
+#### End-to-end tests (Cypress)
+
+The web app uses Cypress for E2E tests.
+
+```bash
+# Full automated run (starts dev server, runs tests, tears down):
+npm run e2e -w @trail-tracker/web
+
+# Interactive Cypress UI:
+npm run cy:open -w @trail-tracker/web         # Chromium
+npm run cy:open:chrome -w @trail-tracker/web  # Chrome
+
+# Headless run only (requires dev server already running):
+npm run cy:run -w @trail-tracker/web
+```
 
 ---
 
-#### End-to-End (E2E) Tests – Web
-
-The web application uses **Cypress**.
-
-Run from the root:
+### Typical daily workflow
 
 ```bash
-npm run cy:open -w @trail-tracker/web   # Cypress UI (Chromium)
-npm run cy:open:chrome -w @trail-tracker/web   # Cypress UI (Chrome)
-npm run cy:run -w @trail-tracker/web         # Headless Cypress run
-```
+npm install                        # after pulling, if dependencies changed
 
-Run full automated E2E flow (recommended):
+npm run dev -w @trail-tracker/web  # start dev server
 
-```bash
-npm run e2e -w @trail-tracker/web
-```
-
-This will:
-1. Start the Vite dev server
-2. Wait for http://localhost:5173
-3. Execute Cypress tests headlessly
-4. Shut everything down automatically
-
----
-
-### Local Development Workflow
-
-Typical day-to-day workflow:
-
-```bash
-# install dependencies
-npm install
-
-# start web app
-npm run e2e -w @trail-tracker/web
-```
-
-Before committing:
-
-```bash
+# before committing:
 npm run lint
 npm test
 ```
 
-Before opening a PR (recommended):
+Before opening a pull request, also run:
 
 ```bash
 npm run e2e -w @trail-tracker/web

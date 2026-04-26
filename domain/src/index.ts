@@ -2,6 +2,86 @@
 
 export type TrackType = 'AVO' | 'VOI' | 'TRAINING'
 
+// ---------------------------------------------------------------------------
+// TrackObject – discriminated union of all objects that can appear on a track
+// ---------------------------------------------------------------------------
+
+/**
+ * The start point of the track (lähtö).
+ * Ground is broken in a 30x30 cm area. Direction marker is placed ~10m ahead.
+ */
+export interface TrackObjectStart {
+  type: 'START'
+  id: string
+  position: Coordinate
+}
+
+/**
+ * The finish / kill site (kaato).
+ * Ground is broken in a 30x30 cm area.
+ * Must be ≥60m from a trafficked road.
+ */
+export interface TrackObjectFinish {
+  type: 'FINISH'
+  id: string
+  position: Coordinate
+}
+
+/**
+ * A 90-degree corner (kulma).
+ * AVO requires 2, VOI requires 3 (one of which carries the break).
+ * Must be ≥150m from start, finish, and other key elements.
+ */
+export interface TrackObjectCorner {
+  type: 'CORNER'
+  id: string
+  position: Coordinate
+}
+
+/**
+ * A lay pit / resting place (makuupaikka).
+ * Ground is broken in a 30x30 cm area; a few drops of blood added.
+ * AVO: 2 pits. VOI: 4 pits (one per straight segment, ≥50m from any corner or finish).
+ */
+export interface TrackObjectLayPit {
+  type: 'LAY_PIT'
+  id: string
+  position: Coordinate
+}
+
+/**
+ * The bloodless break used in VOI class (katko / katkos).
+ * Placed on one corner at least 300m before the finish.
+ * The blood trail leads 15m, then moves 2–5m sideways, backtracks 15m,
+ * then turns 90° forward ~10m before resuming.
+ */
+export interface TrackObjectBreak {
+  type: 'BREAK'
+  id: string
+  /** Position where the blood trail stops (end of the last bloody segment). */
+  position: Coordinate
+}
+
+/**
+ * A generic navigation / reference marker (merkki).
+ * Used for planning purposes; not a rule-defined element.
+ */
+export interface TrackObjectMarker {
+  type: 'MARKER'
+  id: string
+  position: Coordinate
+  /** Optional label shown on the map. */
+  label?: string
+}
+
+export type TrackObject =
+  | TrackObjectStart
+  | TrackObjectFinish
+  | TrackObjectCorner
+  | TrackObjectLayPit
+  | TrackObjectBreak
+  | TrackObjectMarker
+
 export interface Coordinate {
   lat: number
   lon: number
@@ -19,6 +99,7 @@ export interface Track {
   name: string
   type: TrackType
   segments: TrackSegment[]
+  objects: TrackObject[]
 }
 
 // Approximate Earth radius in meters

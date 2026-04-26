@@ -4,7 +4,11 @@
 // No React dependency — fully unit-testable in isolation.
 
 import type { TrackType, TrackSegment, Track } from '@trail-tracker/domain'
-import { getTrackLengthMeters } from '@trail-tracker/domain'
+import {
+  getTrackLengthMeters,
+  getSegmentBearingDegrees,
+  getSegmentLengthMeters,
+} from '@trail-tracker/domain'
 import {
   segmentsFromGeoJson,
   coordinateFromGeoJson,
@@ -81,8 +85,15 @@ export function draftTrackReducer(
 // Derived values — computed from state, not stored
 // ---------------------------------------------------------------------------
 
+export interface SegmentInfo {
+  index: number
+  lengthMeters: number
+  bearingDegrees: number
+}
+
 export interface DraftTrackDerived {
   segments: TrackSegment[]
+  segmentInfos: SegmentInfo[]
   totalLengthMeters: number
   canFinish: boolean
   canUndo: boolean
@@ -95,6 +106,11 @@ export interface DraftTrackDerived {
 
 export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
   const segments = segmentsFromGeoJson(state.points)
+  const segmentInfos: SegmentInfo[] = segments.map((s) => ({
+    index: s.sequenceIndex,
+    lengthMeters: getSegmentLengthMeters(s),
+    bearingDegrees: getSegmentBearingDegrees(s),
+  }))
   const totalLengthMeters = getTrackLengthMeters({
     id: 'draft',
     name: 'draft',
@@ -128,6 +144,7 @@ export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
 
   return {
     segments,
+    segmentInfos,
     totalLengthMeters,
     canFinish: state.mode === 'drawing' && state.points.length >= 2,
     canUndo: state.mode === 'drawing' && state.points.length > 0,

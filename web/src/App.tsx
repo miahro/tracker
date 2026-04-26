@@ -86,6 +86,17 @@ export default function App() {
           </span>
           <span data-testid="summary-length">{Math.round(derived.totalLengthMeters)} m</span>
           <span data-testid="summary-points">{state.points.length} points</span>
+          <span className="summaryDivider" />
+          {derived.segmentInfos.map((info) => (
+            <span
+              key={info.index}
+              className="segmentInfo"
+              data-testid={`summary-seg-${info.index}`}
+            >
+              Seg {info.index + 1}: {Math.round(info.lengthMeters)} m &nbsp;·&nbsp;{' '}
+              {Math.round(info.bearingDegrees)}°
+            </span>
+          ))}
         </div>
       )}
 

@@ -133,3 +133,29 @@ export function getSegmentLengthMeters(segment: TrackSegment): number {
 export function getTrackLengthMeters(track: Track): number {
   return track.segments.reduce((sum, segment) => sum + getSegmentLengthMeters(segment), 0)
 }
+
+/**
+ * Grid (true north) bearing from segment start to end, in degrees 0–360.
+ *
+ * Uses the forward azimuth formula for WGS84 coordinates.
+ * 0° = North, 90° = East, 180° = South, 270° = West.
+ *
+ * For a MEJÄ track the corners are specified as 90° turns, so the bearing
+ * of each segment relative to the previous one matters for field placement.
+ */
+export function getSegmentBearingDegrees(segment: TrackSegment): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const toDeg = (rad: number) => (rad * 180) / Math.PI
+
+  const lat1 = toRad(segment.start.lat)
+  const lat2 = toRad(segment.end.lat)
+  const dLon = toRad(segment.end.lon - segment.start.lon)
+
+  const x = Math.sin(dLon) * Math.cos(lat2)
+  const y = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon)
+
+  const bearing = toDeg(Math.atan2(x, y))
+
+  // Normalise to 0–360
+  return (bearing + 360) % 360
+}

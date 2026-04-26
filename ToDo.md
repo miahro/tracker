@@ -85,16 +85,16 @@
 
 ## Phase 3 – Basic Track Editor
 
-- [ ] UI: select track type (AVO / VOI / TRAINING) before drawing
-- [ ] Click-to-add-point on map (append points)
-- [ ] Draw polyline between added points
-- [ ] Undo last point
-- [ ] Reset / clear drawing
-- [ ] "Finish track" workflow:
-  - [ ] Freeze points; enter edit mode to modify
-  - [ ] Auto-create START + FINISH objects from first/last point
-  - [ ] Show total length + segment lengths
-- [ ] Show grid bearings for segments
+- [x] UI: select track type (AVO / VOI / TRAINING) before drawing
+- [x] Click-to-add-point on map (append points)
+- [x] Draw polyline between added points
+- [x] Undo last point
+- [x] Reset / clear drawing
+- [x] "Finish track" workflow:
+  - [x] Freeze points; enter edit mode to modify
+  - [x] Auto-create START + FINISH objects from first/last point
+  - [x] Show total length + segment lengths
+- [x] Show grid bearings for segments
 - [ ] Snap-to-last-point tolerance (avoid micro-segments)
 - [ ] Warn on minimum segment length
 

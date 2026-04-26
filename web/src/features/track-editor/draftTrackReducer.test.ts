@@ -176,6 +176,7 @@ describe('deriveDraftTrack', () => {
   it('returns empty segments and zero length when idle', () => {
     const d = deriveDraftTrack(INITIAL_STATE)
     expect(d.segments).toHaveLength(0)
+    expect(d.segmentInfos).toHaveLength(0)
     expect(d.totalLengthMeters).toBe(0)
   })
 
@@ -187,6 +188,20 @@ describe('deriveDraftTrack', () => {
   it('returns N-1 segments for N points', () => {
     const d = deriveDraftTrack(drawing(P1, P2, P3, P4))
     expect(d.segments).toHaveLength(3)
+    expect(d.segmentInfos).toHaveLength(3)
+  })
+
+  it('segmentInfos bearing is in 0–360 range', () => {
+    const d = deriveDraftTrack(drawing(P1, P2, P3))
+    for (const info of d.segmentInfos) {
+      expect(info.bearingDegrees).toBeGreaterThanOrEqual(0)
+      expect(info.bearingDegrees).toBeLessThan(360)
+    }
+  })
+
+  it('segmentInfos lengthMeters is positive', () => {
+    const d = deriveDraftTrack(drawing(P1, P2))
+    expect(d.segmentInfos[0].lengthMeters).toBeGreaterThan(0)
   })
 
   it('computes a positive total length for 2+ points', () => {

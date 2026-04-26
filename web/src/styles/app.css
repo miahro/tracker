@@ -74,3 +74,14 @@
   font-weight: 600;
   color: #007acc;
 }
+
+.summaryDivider {
+  width: 1px;
+  height: 1rem;
+  background: #c8dff8;
+}
+
+.segmentInfo {
+  color: #444;
+  white-space: nowrap;
+}

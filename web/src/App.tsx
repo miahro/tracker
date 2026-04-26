@@ -104,7 +104,9 @@ export default function App() {
         <MapView
           baseMapId={baseMapId}
           trackPositions={trackPositions}
-          onMapClick={state.mode === 'drawing' ? addPoint : undefined}
+          onMapClick={
+            state.mode === 'drawing' && !derived.isPointLimitReached ? addPoint : undefined
+          }
         />
       </main>
     </div>

@@ -35,6 +35,22 @@ export const INITIAL_STATE: DraftTrackState = {
 }
 
 // ---------------------------------------------------------------------------
+// Track type constraints
+// ---------------------------------------------------------------------------
+
+/**
+ * Maximum number of points allowed per track type.
+ * AVO: 4 points → 3 segments (2 corners)
+ * VOI: 5 points → 4 segments (3 corners)
+ * TRAINING: unlimited (represented as Infinity)
+ */
+export const MAX_POINTS: Record<TrackType, number> = {
+  AVO: 4,
+  VOI: 5,
+  TRAINING: Infinity,
+}
+
+// ---------------------------------------------------------------------------
 // Actions
 // ---------------------------------------------------------------------------
 
@@ -59,10 +75,13 @@ export function draftTrackReducer(
       if (state.mode === 'drawing') return state
       return { mode: 'drawing', trackType: action.trackType, points: [] }
 
-    case 'ADD_POINT':
+    case 'ADD_POINT': {
       // Only accept points while drawing
       if (state.mode !== 'drawing') return state
+      // Block once the track-type limit is reached
+      if (state.points.length >= MAX_POINTS[state.trackType]) return state
       return { ...state, points: [...state.points, action.position] }
+    }
 
     case 'UNDO':
       if (state.mode !== 'drawing' || state.points.length === 0) return state
@@ -97,6 +116,12 @@ export interface DraftTrackDerived {
   totalLengthMeters: number
   canFinish: boolean
   canUndo: boolean
+  /**
+   * True when the point limit for AVO/VOI has been reached.
+   * TRAINING never reaches a limit (always false).
+   * Used by the UI to auto-trigger Finish or disable further point adding.
+   */
+  isPointLimitReached: boolean
   /**
    * Fully assembled Track with START + FINISH objects.
    * Only present when mode === 'finished'.
@@ -142,12 +167,26 @@ export function deriveDraftTrack(state: DraftTrackState): DraftTrackDerived {
         }
       : null
 
+  const maxPoints = MAX_POINTS[state.trackType]
+  const isPointLimitReached =
+    state.mode === 'drawing' && maxPoints !== Infinity && state.points.length >= maxPoints
+
+  /**
+   * canFinish rules:
+   * - AVO/VOI: only when the exact point limit has been reached (track is complete)
+   * - TRAINING: any time there are ≥2 points while drawing
+   */
+  const canFinish =
+    state.mode === 'drawing' &&
+    (state.trackType === 'TRAINING' ? state.points.length >= 2 : state.points.length >= maxPoints)
+
   return {
     segments,
     segmentInfos,
     totalLengthMeters,
-    canFinish: state.mode === 'drawing' && state.points.length >= 2,
+    canFinish,
     canUndo: state.mode === 'drawing' && state.points.length > 0,
+    isPointLimitReached,
     finishedTrack,
   }
 }

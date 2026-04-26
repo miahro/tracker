@@ -95,6 +95,51 @@ describe('ADD_POINT', () => {
     const state = draftTrackReducer(finished, { type: 'ADD_POINT', position: P3 })
     expect(state.points).toHaveLength(2)
   })
+
+  // AVO max = 4 points
+  it('blocks the 5th point for AVO', () => {
+    const P5: GeoJsonPosition = [25.18, 60.34]
+    const state = drawing(P1, P2, P3, P4) // exactly 4 — at limit
+    const blocked = draftTrackReducer(state, { type: 'ADD_POINT', position: P5 })
+    expect(blocked.points).toHaveLength(4)
+  })
+
+  it('allows exactly 4 points for AVO', () => {
+    const state = drawing(P1, P2, P3, P4)
+    expect(state.points).toHaveLength(4)
+  })
+
+  // VOI max = 5 points
+  it('allows exactly 5 points for VOI', () => {
+    const P5: GeoJsonPosition = [25.18, 60.34]
+    let state = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'VOI' })
+    for (const p of [P1, P2, P3, P4, P5]) {
+      state = draftTrackReducer(state, { type: 'ADD_POINT', position: p })
+    }
+    expect(state.points).toHaveLength(5)
+  })
+
+  it('blocks the 6th point for VOI', () => {
+    const P5: GeoJsonPosition = [25.18, 60.34]
+    const P6: GeoJsonPosition = [25.2, 60.35]
+    let state = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'VOI' })
+    for (const p of [P1, P2, P3, P4, P5]) {
+      state = draftTrackReducer(state, { type: 'ADD_POINT', position: p })
+    }
+    const blocked = draftTrackReducer(state, { type: 'ADD_POINT', position: P6 })
+    expect(blocked.points).toHaveLength(5)
+  })
+
+  // TRAINING has no limit
+  it('allows more than 5 points for TRAINING', () => {
+    const P5: GeoJsonPosition = [25.18, 60.34]
+    const P6: GeoJsonPosition = [25.2, 60.35]
+    let state = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'TRAINING' })
+    for (const p of [P1, P2, P3, P4, P5, P6]) {
+      state = draftTrackReducer(state, { type: 'ADD_POINT', position: p })
+    }
+    expect(state.points).toHaveLength(6)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -226,13 +271,60 @@ describe('deriveDraftTrack', () => {
     expect(deriveDraftTrack(drawing(P1)).canFinish).toBe(false)
   })
 
-  it('canFinish is true with 2+ points while drawing', () => {
-    expect(deriveDraftTrack(drawing(P1, P2)).canFinish).toBe(true)
+  // AVO requires exactly 4 points — canFinish is false before that
+  it('canFinish is false for AVO with only 2 points', () => {
+    expect(deriveDraftTrack(drawing(P1, P2)).canFinish).toBe(false)
+  })
+
+  it('canFinish is false for AVO with 3 points', () => {
+    expect(deriveDraftTrack(drawing(P1, P2, P3)).canFinish).toBe(false)
+  })
+
+  it('canFinish is true for AVO at exactly 4 points', () => {
+    const P5: GeoJsonPosition = [25.18, 60.34]
+    expect(deriveDraftTrack(drawing(P1, P2, P3, P4)).canFinish).toBe(true)
+    void P5
+  })
+
+  // TRAINING: canFinish at 2+ points (no upper limit)
+  it('canFinish is true for TRAINING with 2+ points while drawing', () => {
+    function trainingDrawing(...points: GeoJsonPosition[]): DraftTrackState {
+      let state = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'TRAINING' })
+      for (const p of points) {
+        state = draftTrackReducer(state, { type: 'ADD_POINT', position: p })
+      }
+      return state
+    }
+    expect(deriveDraftTrack(trainingDrawing(P1, P2)).canFinish).toBe(true)
+    expect(deriveDraftTrack(trainingDrawing(P1, P2, P3, P4)).canFinish).toBe(true)
   })
 
   it('canFinish is false when finished', () => {
     const finished = { ...drawing(P1, P2), mode: 'finished' as const }
     expect(deriveDraftTrack(finished).canFinish).toBe(false)
+  })
+
+  // isPointLimitReached
+  it('isPointLimitReached is false before AVO limit', () => {
+    expect(deriveDraftTrack(drawing(P1, P2, P3)).isPointLimitReached).toBe(false)
+  })
+
+  it('isPointLimitReached is true at AVO limit (4 points)', () => {
+    expect(deriveDraftTrack(drawing(P1, P2, P3, P4)).isPointLimitReached).toBe(true)
+  })
+
+  it('isPointLimitReached is never true for TRAINING', () => {
+    const P5: GeoJsonPosition = [25.18, 60.34]
+    const P6: GeoJsonPosition = [25.2, 60.35]
+    let state = draftTrackReducer(INITIAL_STATE, { type: 'START_DRAWING', trackType: 'TRAINING' })
+    for (const p of [P1, P2, P3, P4, P5, P6]) {
+      state = draftTrackReducer(state, { type: 'ADD_POINT', position: p })
+    }
+    expect(deriveDraftTrack(state).isPointLimitReached).toBe(false)
+  })
+
+  it('isPointLimitReached is false when idle', () => {
+    expect(deriveDraftTrack(INITIAL_STATE).isPointLimitReached).toBe(false)
   })
 
   it('finishedTrack is null when drawing', () => {

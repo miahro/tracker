@@ -213,3 +213,59 @@ describe('validateTrack — multiple violations', () => {
     expect(validateTrack(VOI_VALID)).toHaveLength(0)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Self-intersection
+// ---------------------------------------------------------------------------
+
+// Crossed AVO track: seg 0 (SW→NE) and seg 2 (SE→NW) form an X.
+// Verified with explicit intersection math before use in tests.
+//   p0=[25.100,60.300] → p1=[25.112,60.312] (seg 0, NE, ~1489 m)
+//   p1            → p2=[25.112,60.300] (seg 1, south, ~1334 m)
+//   p2            → p3=[25.100,60.312] (seg 2, NW, ~1489 m) ← crosses seg 0
+
+// Crossed AVO: seg 0 (SW→NE) and seg 2 (SE→NW) form an X. Verified analytically.
+function makeCrossedAvoTrack(): Track {
+  return makeTrack('AVO', [
+    { lat: 60.3, lon: 25.1 },
+    { lat: 60.312, lon: 25.112 },
+    { lat: 60.3, lon: 25.112 },
+    { lat: 60.312, lon: 25.1 },
+  ])
+}
+
+// Clean Z-shape: right-angle turns only, no segment crosses another.
+function makeCleanAvoTrack(): Track {
+  return makeTrack('AVO', [
+    { lat: 60.3, lon: 25.1 },
+    { lat: 60.31, lon: 25.1 },
+    { lat: 60.31, lon: 25.11 },
+    { lat: 60.32, lon: 25.11 },
+  ])
+}
+
+describe('validateTrack — self-intersection', () => {
+  it('reports no self-intersection for a clean AVO track', () => {
+    const violations = validateTrack(makeCleanAvoTrack())
+    expect(violations.filter((v) => v.ruleId === 'self-intersection')).toHaveLength(0)
+  })
+
+  it('reports self-intersection when segments cross', () => {
+    const track = makeCrossedAvoTrack()
+    const violations = validateTrack(track)
+    const si = violations.filter((v) => v.ruleId === 'self-intersection')
+    expect(si.length).toBeGreaterThan(0)
+    expect(si[0].severity).toBe('error')
+    expect(si[0].message).toMatch(/cross/)
+  })
+
+  it('does not report self-intersection for TRAINING track', () => {
+    const violations = validateTrack(TRAINING_TRACK)
+    expect(violations.filter((v) => v.ruleId === 'self-intersection')).toHaveLength(0)
+  })
+
+  it('reports no self-intersection for a valid VOI track', () => {
+    const violations = validateTrack(VOI_VALID)
+    expect(violations.filter((v) => v.ruleId === 'self-intersection')).toHaveLength(0)
+  })
+})

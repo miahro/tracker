@@ -190,6 +190,42 @@ const TRACK_LENGTH: Record<string, { min: number; max: number }> = {
 const MIN_SEGMENT_LENGTH_M = 150
 
 /**
+ * Test whether two line segments intersect, using 2D parametric intersection.
+ * Treats lon/lat as flat Cartesian coordinates — accurate enough for MEJÄ
+ * segment lengths (< 2 km; error < 1 mm at Finnish latitudes).
+ *
+ * Shared endpoints (adjacent segments) are NOT considered intersections —
+ * callers must skip adjacent pairs themselves.
+ */
+function segmentsIntersect(a: TrackSegment, b: TrackSegment): boolean {
+  const ax1 = a.start.lon,
+    ay1 = a.start.lat
+  const ax2 = a.end.lon,
+    ay2 = a.end.lat
+  const bx1 = b.start.lon,
+    by1 = b.start.lat
+  const bx2 = b.end.lon,
+    by2 = b.end.lat
+
+  const dax = ax2 - ax1,
+    day = ay2 - ay1
+  const dbx = bx2 - bx1,
+    dby = by2 - by1
+
+  const denom = dax * dby - day * dbx
+  if (Math.abs(denom) < 1e-12) return false // parallel or collinear
+
+  const dx = bx1 - ax1,
+    dy = by1 - ay1
+  const t = (dx * dby - dy * dbx) / denom
+  const u = (dx * day - dy * dax) / denom
+
+  // Strictly interior intersection (exclude shared endpoints: t/u = 0 or 1)
+  const eps = 1e-10
+  return t > eps && t < 1 - eps && u > eps && u < 1 - eps
+}
+
+/**
  * Validate a finished Track against the MEJÄ rules that can be checked
  * from geometry alone.
  *
@@ -198,6 +234,7 @@ const MIN_SEGMENT_LENGTH_M = 150
  * Rules checked:
  *   track-length       — total length within class bounds (AVO/VOI)
  *   min-segment-length — every segment ≥ 150 m (AVO/VOI)
+ *   self-intersection  — no two non-adjacent segments may cross (AVO/VOI)
  */
 export function validateTrack(track: Track): RuleViolation[] {
   if (track.type === 'TRAINING') return []
@@ -231,6 +268,21 @@ export function validateTrack(track: Track): RuleViolation[] {
         message: `Segment ${segment.sequenceIndex + 1} is too short: ${Math.round(length)} m (minimum ${MIN_SEGMENT_LENGTH_M} m)`,
         segmentIndex: segment.sequenceIndex,
       })
+    }
+  }
+
+  // --- Self-intersection ---
+  const sorted = [...track.segments].sort((a, b) => a.sequenceIndex - b.sequenceIndex)
+  for (let i = 0; i < sorted.length; i++) {
+    for (let j = i + 2; j < sorted.length; j++) {
+      // Skip adjacent pairs — they share an endpoint and aren't a real crossing
+      if (segmentsIntersect(sorted[i], sorted[j])) {
+        violations.push({
+          ruleId: 'self-intersection',
+          severity: 'error',
+          message: `Segment ${sorted[i].sequenceIndex + 1} and segment ${sorted[j].sequenceIndex + 1} cross each other`,
+        })
+      }
     }
   }
 

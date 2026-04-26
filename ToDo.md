@@ -122,9 +122,9 @@
 - [x] Visualize rule violations on map (color overlays, segment highlighting)
 - [x] Local persistence (IndexedDB)
 - [ ] Advanced geometry editing:
-  - [ ] Move point
-  - [ ] Delete point
-  - [ ] Insert point on segment
+  - [x] Move point
+  - [x] Delete point
+  - [ ] Insert point on segment -> NOT TO BE DONE
 
 ---
 

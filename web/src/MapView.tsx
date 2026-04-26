@@ -4,6 +4,8 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { getBaseMapConfig, type BaseMapId } from './basemaps'
 import { buildBaseMapStyle } from './map/buildBaseMapStyle'
+import { useTrackLayers } from './features/track-editor/useTrackLayers'
+import type { GeoJsonPosition } from './adapters/geojson'
 
 interface MapAntFeatureName {
   id: string
@@ -18,15 +20,22 @@ interface MapAntFeatureName {
 
 interface MapViewProps {
   baseMapId: BaseMapId
+  trackPositions: GeoJsonPosition[]
+  onMapClick?: (position: GeoJsonPosition) => void
 }
 
 const DEFAULT_CENTER: [number, number] = [23.796833, 60.447159]
 const DEFAULT_ZOOM = 15
 
-export function MapView({ baseMapId }: MapViewProps) {
+export function MapView({ baseMapId, trackPositions, onMapClick }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const labelMarkersRef = useRef<maplibregl.Marker[]>([])
+  // Keep a stable ref to the callback so the click handler doesn't need re-registration
+  const onMapClickRef = useRef(onMapClick)
+  useEffect(() => {
+    onMapClickRef.current = onMapClick
+  }, [onMapClick])
 
   useEffect(() => {
     if (!mapContainerRef.current) return
@@ -44,14 +53,18 @@ export function MapView({ baseMapId }: MapViewProps) {
         zoom: DEFAULT_ZOOM,
       })
     } catch (err) {
-      // WebGL is unavailable (e.g. Cypress interactive mode, headless CI without GPU).
-      // Log and bail — the rest of the UI (buttons, state) remains fully functional.
       console.warn('MapLibre: failed to initialize map, WebGL may be unavailable.', err)
       return
     }
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
     mapRef.current = map
+
+    function handleClick(e: maplibregl.MapMouseEvent) {
+      onMapClickRef.current?.([e.lngLat.lng, e.lngLat.lat])
+    }
+
+    map.on('click', handleClick)
 
     async function updateFeatureNames() {
       if (baseMap.id !== 'mapant') return
@@ -106,6 +119,7 @@ export function MapView({ baseMapId }: MapViewProps) {
     map.on('moveend', handleMoveEnd)
 
     return () => {
+      map.off('click', handleClick)
       map.off('moveend', handleMoveEnd)
       for (const marker of labelMarkersRef.current) marker.remove()
       labelMarkersRef.current = []
@@ -113,6 +127,8 @@ export function MapView({ baseMapId }: MapViewProps) {
       mapRef.current = null
     }
   }, [baseMapId])
+
+  useTrackLayers({ mapRef, positions: trackPositions })
 
   return <div ref={mapContainerRef} className="mapContainer" />
 }

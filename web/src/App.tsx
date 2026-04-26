@@ -4,6 +4,7 @@ import { MapView } from './MapView'
 import type { BaseMapId } from './basemaps'
 import { BaseMapToggle } from './components/BaseMapToggle'
 import { useDraftTrack } from './features/track-editor/useDraftTrack'
+import { useRuler } from './features/ruler/useRuler'
 import { segmentsToGeoJson } from './adapters/geojson'
 import { validateTrack, type RuleViolation } from '@trail-tracker/domain'
 
@@ -11,6 +12,7 @@ export default function App() {
   const [baseMapId, setBaseMapId] = useState<BaseMapId>('nls-vector')
   const { state, derived, startDrawing, addPoint, undo, finish, reset } = useDraftTrack()
   const [violations, setViolations] = useState<RuleViolation[] | null>(null)
+  const { ruler, startRuler, handleRulerClick, resetRuler } = useRuler()
 
   const trackPositions = segmentsToGeoJson(derived.segments)
 
@@ -30,6 +32,7 @@ export default function App() {
 
   function handleReset() {
     setViolations(null)
+    resetRuler()
     reset()
   }
 
@@ -115,7 +118,41 @@ export default function App() {
               Validate
             </button>
           )}
+          {/* Ruler tool — always available, independent of track mode */}
+          {ruler.mode === 'idle' ? (
+            <button className="pillButton" data-testid="btn-ruler" onClick={startRuler}>
+              📏 Ruler
+            </button>
+          ) : (
+            <button
+              className="pillButton pillButtonActive"
+              data-testid="btn-ruler-reset"
+              onClick={resetRuler}
+            >
+              ✕ Ruler
+            </button>
+          )}
         </div>
+        {/* Ruler status bar */}
+        {ruler.mode !== 'idle' && (
+          <div className="rulerStatus" data-testid="ruler-status">
+            {ruler.mode === 'awaiting-first' && 'Click first point'}
+            {ruler.mode === 'awaiting-second' && 'Click second point'}
+            {ruler.mode === 'showing' && ruler.distanceMeters !== null && (
+              <>
+                📏 {Math.round(ruler.distanceMeters)} m
+                {ruler.distanceMeters < 60 && (
+                  <span className="warningBadge" style={{ marginLeft: '0.5rem' }}>
+                    ⚠ &lt;60 m from road/building
+                  </span>
+                )}
+                <span className="subtle" style={{ marginLeft: '0.5rem' }}>
+                  — click to measure again
+                </span>
+              </>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Finished track summary */}
@@ -174,8 +211,14 @@ export default function App() {
           pointRoles={pointRoles}
           layPitZones={derived.layPitZones}
           breakEligibility={derived.breakEligibility}
+          rulerPointA={ruler.pointA}
+          rulerPointB={ruler.pointB}
           onMapClick={
-            state.mode === 'drawing' && !derived.isPointLimitReached ? addPoint : undefined
+            ruler.mode !== 'idle'
+              ? handleRulerClick
+              : state.mode === 'drawing' && !derived.isPointLimitReached
+                ? addPoint
+                : undefined
           }
         />
       </main>

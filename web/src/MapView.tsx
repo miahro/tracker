@@ -26,6 +26,8 @@ interface MapViewProps {
   pointRoles: PointRole[]
   layPitZones: LayPitZone[]
   breakEligibility: BreakEligibility[]
+  rulerPointA: GeoJsonPosition | null
+  rulerPointB: GeoJsonPosition | null
   onMapClick?: (position: GeoJsonPosition) => void
 }
 
@@ -42,6 +44,40 @@ const SOURCE_LAY_PIT = 'lay-pit-zones'
 const LAYER_LAY_PIT = 'lay-pit-zones-line'
 const SOURCE_BREAK = 'break-eligibility'
 const LAYER_BREAK = 'break-eligibility-points'
+
+// Ruler layer IDs
+const SOURCE_RULER = 'ruler'
+const LAYER_RULER_LINE = 'ruler-line'
+const LAYER_RULER_POINTS = 'ruler-points'
+
+function buildRulerGeoJson(
+  pointA: GeoJsonPosition | null,
+  pointB: GeoJsonPosition | null
+): GeoJSON.FeatureCollection {
+  const features: GeoJSON.Feature[] = []
+  if (pointA) {
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: pointA },
+      properties: {},
+    })
+  }
+  if (pointB) {
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: pointB },
+      properties: {},
+    })
+  }
+  if (pointA && pointB) {
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: [pointA, pointB] },
+      properties: {},
+    })
+  }
+  return { type: 'FeatureCollection', features }
+}
 
 function buildLayPitGeoJson(zones: LayPitZone[]): GeoJSON.FeatureCollection {
   return {
@@ -169,6 +205,29 @@ function addTrackLayers(
       'circle-stroke-color': ['case', ['get', 'eligible'], '#16a34a', '#dc2626'],
     },
   })
+
+  // --- Ruler ---
+  map.addSource(SOURCE_RULER, { type: 'geojson', data: buildRulerGeoJson(null, null) })
+  map.addLayer({
+    id: LAYER_RULER_LINE,
+    type: 'line',
+    source: SOURCE_RULER,
+    filter: ['==', '$type', 'LineString'],
+    layout: { 'line-cap': 'round' },
+    paint: { 'line-color': '#f59e0b', 'line-width': 2, 'line-dasharray': [4, 3] },
+  })
+  map.addLayer({
+    id: LAYER_RULER_POINTS,
+    type: 'circle',
+    source: SOURCE_RULER,
+    filter: ['==', '$type', 'Point'],
+    paint: {
+      'circle-radius': 5,
+      'circle-color': '#f59e0b',
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ffffff',
+    },
+  })
 }
 
 export function MapView({
@@ -177,6 +236,8 @@ export function MapView({
   pointRoles,
   layPitZones,
   breakEligibility,
+  rulerPointA,
+  rulerPointB,
   onMapClick,
 }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
@@ -309,6 +370,8 @@ export function MapView({
       if (layPitSource) layPitSource.setData(buildLayPitGeoJson(layPitZones))
       const breakSource = m.getSource(SOURCE_BREAK) as maplibregl.GeoJSONSource | undefined
       if (breakSource) breakSource.setData(buildBreakGeoJson(breakEligibility, trackPositions))
+      const rulerSource = m.getSource(SOURCE_RULER) as maplibregl.GeoJSONSource | undefined
+      if (rulerSource) rulerSource.setData(buildRulerGeoJson(rulerPointA, rulerPointB))
     }
 
     if (map.isStyleLoaded()) {
@@ -316,7 +379,7 @@ export function MapView({
     } else {
       map.once('load', updateData)
     }
-  }, [trackPositions, pointRoles, layPitZones, breakEligibility])
+  }, [trackPositions, pointRoles, layPitZones, breakEligibility, rulerPointA, rulerPointB])
 
   return <div ref={mapContainerRef} className="mapContainer" />
 }

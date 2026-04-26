@@ -129,3 +129,14 @@
   color: #b91c1c;
   font-weight: 500;
 }
+
+.rulerStatus {
+  display: flex;
+  align-items: center;
+  padding: 0.3rem 1rem;
+  font-size: 0.85rem;
+  background: #fffbeb;
+  border-bottom: 1px solid #fcd34d;
+  color: #92400e;
+  font-weight: 500;
+}

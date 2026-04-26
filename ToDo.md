@@ -117,7 +117,7 @@
 
 ## Phase 5 – Editor UX & Advanced Features
 
-- [ ] Manual distance ruler tool (click two map points → shows distance)
+- [x] Manual distance ruler tool (click two map points → shows distance)
   - Primary use: checking distance from roads, buildings
 - [ ] Visualize rule violations on map (color overlays, segment highlighting)
 - [ ] Local persistence (IndexedDB)
